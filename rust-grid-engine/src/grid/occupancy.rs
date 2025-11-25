@@ -33,4 +33,7 @@ impl OccupancyIndex {
             .map(|v| v.as_slice()) // SmallVec -> &[Entity]
             .unwrap_or(&EMPTY)
     }
+    pub fn is_occupied(&self, layer: Layer, coord: GridCoord) -> bool {
+        !self.at(layer, coord).is_empty()
+    }
 }

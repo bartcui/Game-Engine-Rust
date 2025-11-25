@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 pub mod types;
 pub mod occupancy;
-pub use types::*;        
+pub use types::*;   
+pub use occupancy::OccupancyIndex;     
 
 #[derive(Resource)]
 pub struct GridTransform {
@@ -26,4 +27,46 @@ impl GridTransform {
             0.0,
         )
     }
+
+    pub fn to_grid(&self, w: Vec2) -> GridCoord {
+        let x = ((w.x - self.origin.x) / self.tile_size).floor() as i32;
+        let y = ((w.y - self.origin.y) / self.tile_size).floor() as i32;
+        GridCoord { x, y }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum Layer {
+    Terrain,
+    Blockers,
+    Actors,
+    Items,
+}
+
+// 4 neighbours
+pub fn neighbours_4(c: GridCoord) -> [GridCoord; 4] {
+    [
+        GridCoord::new(c.x + 1, c.y),
+        GridCoord::new(c.x - 1, c.y),
+        GridCoord::new(c.x, c.y + 1),
+        GridCoord::new(c.x, c.y - 1),
+    ]
+}
+
+// 8 neighbours for diagonals 
+pub fn neighbours_8(c: GridCoord) -> [GridCoord; 8] {
+    [
+        GridCoord::new(c.x + 1, c.y),
+        GridCoord::new(c.x - 1, c.y),
+        GridCoord::new(c.x, c.y + 1),
+        GridCoord::new(c.x, c.y - 1),
+        GridCoord::new(c.x + 1, c.y + 1),
+        GridCoord::new(c.x - 1, c.y + 1),
+        GridCoord::new(c.x + 1, c.y - 1),
+        GridCoord::new(c.x - 1, c.y - 1),
+    ]
+}
+
+pub fn in_bounds(c: GridCoord, width: i32, height: i32) -> bool {
+    c.x >= 0 && c.x < width && c.y >= 0 && c.y < height
 }
