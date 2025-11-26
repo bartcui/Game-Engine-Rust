@@ -3,6 +3,7 @@ pub mod types;
 pub mod occupancy;
 pub use types::*;   
 pub use occupancy::OccupancyIndex;     
+use crate::components::{Position, Blocking, Actor};
 
 #[derive(Resource)]
 pub struct GridTransform {
@@ -69,4 +70,23 @@ pub fn neighbours_8(c: GridCoord) -> [GridCoord; 8] {
 
 pub fn in_bounds(c: GridCoord, width: i32, height: i32) -> bool {
     c.x >= 0 && c.x < width && c.y >= 0 && c.y < height
+}
+
+// ECS system to rebuild the index each frame / turn
+pub fn rebuild_occupancy(
+    mut occ: ResMut<OccupancyIndex>,
+    q: Query<(Entity, &Position, Option<&Blocking>, Option<&Actor>)>,
+) {
+    occ.clear();
+
+    for (entity, pos, blocking, actor) in &q {
+        // Put blocking things into Blockers layer
+        if blocking.is_some() {
+            occ.insert(Layer::Blockers, pos.0, entity);
+        }
+        // Put actors into Actors layer
+        if actor.is_some() {
+            occ.insert(Layer::Actors, pos.0, entity);
+        }
+    }
 }

@@ -1,5 +1,5 @@
 use crate::components::*;
-use crate::grid::{GridCoord, GridTransform};
+use crate::grid:: GridTransform;
 use crate::intents::Intent;
 use bevy::prelude::*;
 use crate::map::load_level_from_json; 
@@ -22,7 +22,10 @@ impl Plugin for ScenePlugin {
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
             .add_systems(OnEnter(GameScene::InGame), setup_game)
             .add_systems(OnExit(GameScene::InGame), teardown_game)
-            .add_systems(Update, sync_transforms.run_if(is_in_game_scene));
+            .add_systems(
+                Update,
+                (sync_transforms,crate::grid::rebuild_occupancy).run_if(is_in_game_scene),
+            );
     }
 }
 
