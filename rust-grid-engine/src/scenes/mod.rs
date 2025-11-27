@@ -1,6 +1,6 @@
 use crate::components::*;
 use crate::engine::TurnNumber;
-use crate::grid::GridTransform;
+use crate::grid::{GridCoord,GridTransform};
 use crate::intents::Intent;
 use crate::map::load_level_from_json;
 use bevy::prelude::*;
@@ -52,12 +52,20 @@ fn setup_menu(mut next: ResMut<NextState<GameScene>>) {
     next.set(GameScene::InGame);
 }
 
-fn setup_game(mut commands: Commands, grid_tf: Res<GridTransform>) {
-    // Load level JSON
-    let bytes = fs::read("assets/levels/level1.json")
-        .expect("failed to read assets/levels/level1.json");
-    let level = load_level_from_json(&bytes)
-        .expect("invalid level JSON");
+fn setup_game(
+    mut commands: Commands,
+    grid_tf: Res<GridTransform>,
+    //mut turn_rng: ResMut<TurnRng>, // if use level.seed
+) {
+    // game file loaded here
+    let bytes = fs::read("assets/levels/level2.json")
+        .expect("failed to read assets/levels/level2.json");
+    let level = load_level_from_json(&bytes).expect("invalid level JSON");
+
+    // If the level JSON has a seed, use it to re-seed the RNG
+    //if let Some(seed) = level.seed {
+      //  turn_rng.0 = StdRng::seed_from_u64(seed);
+    //}
 
     // player
     let p = level.player_start;
@@ -101,6 +109,58 @@ fn setup_game(mut commands: Commands, grid_tf: Res<GridTransform>) {
             Transform::from_translation(grid_tf.to_world(g)),
         ));
     }
+
+    // traps
+    for t in level.traps {
+        commands.spawn((
+            Trap,
+            Position(t),
+            Sprite {
+                color: Color::srgb(0.9, 0.2, 0.2),
+                custom_size: Some(Vec2::splat(grid_tf.tile_size)),
+                ..Default::default()
+            },
+            Transform::from_translation(grid_tf.to_world(t)),
+        ));
+    }
+
+    // doors
+    for d in level.doors {
+        let coord = GridCoord::new(d.x, d.y);
+        commands.spawn((
+            Door,       
+            Blocking,   
+            Position(coord),
+            Sprite {
+                color: if d.locked {
+                    Color::srgb(0.7, 0.5, 0.2)
+                } else {
+                    Color::srgb(0.9, 0.8, 0.3)
+                },
+                custom_size: Some(Vec2::splat(grid_tf.tile_size)),
+                ..Default::default()
+            },
+            Transform::from_translation(grid_tf.to_world(coord)),
+        ));
+    }
+
+    // enemies
+    for e in level.enemies {
+        let coord = GridCoord::new(e.x, e.y);
+        commands.spawn((
+            Actor,
+            AI,
+            Blocking,
+            Position(coord),
+            PendingIntent(Intent::Wait),
+            Sprite {
+                color: Color::srgb(0.8, 0.2, 0.8), 
+                custom_size: Some(Vec2::splat(grid_tf.tile_size)),
+                ..Default::default()
+            },
+            Transform::from_translation(grid_tf.to_world(coord)),
+        ));
+    }
 }
 
 pub fn sync_transforms(
@@ -114,11 +174,8 @@ pub fn sync_transforms(
 
 
 fn setup_hud(mut commands: Commands) {
-    // Simple world-space text in the top-left-ish corner.
-    // You can tweak the position numbers to place it nicely above your grid.
     commands.spawn((
         Text2d::new("Turn: 0"),
-        // Use default font with a readable size.
         TextFont::from_font_size(24.0),
         TextColor(Color::WHITE),
         Transform::from_xyz(-380.0, 260.0, 10.0),
@@ -130,7 +187,6 @@ fn update_turn_hud(
     turn: Res<TurnNumber>,
     mut q: Query<&mut Text2d, With<TurnHudText>>,
 ) {
-    // Only do work when the turn resource actually changes.
     if !turn.is_changed() {
         return;
     }
@@ -146,7 +202,7 @@ fn teardown_game(
     q_actors: Query<Entity, With<Actor>>,
     q_hud: Query<Entity, With<TurnHudText>>,
 ) {
-    // Despawn all game actors (player, enemies, etc.)
+    // Despawn all game actors 
     for e in &q_actors {
         commands.entity(e).despawn();
     }

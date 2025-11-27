@@ -54,6 +54,9 @@ Game control/key binding
 WSAD for directions
 R -> restart
 
+For basic use, devs just write JSON level files and drop them in assets/levels/.
+For more advanced games, they can extend the component set and plug additional systems into the same deterministic turn pipeline.
+
 
 
 

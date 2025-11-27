@@ -21,7 +21,10 @@ pub struct Goal;
 pub struct Trap;
 
 #[derive(Component, Debug, Clone, Copy)]
-pub struct Actor; // tag for units that can take turns
+pub struct Actor; 
+
+#[derive(Component)]
+pub struct Door;
 
 // Temporary per-turn intent buffer
 #[derive(Component, Debug, Clone)]
