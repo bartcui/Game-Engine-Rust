@@ -23,7 +23,7 @@ pub fn gather_player_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut q_players: Query<&mut PendingIntent, With<Player>>,
     mut replay: ResMut<ReplayLog>,
-    turn: Res<TurnNumber>,
+    mut turn: ResMut<TurnNumber>, 
 ) {
     // updated
     let input_event = if keyboard.just_pressed(KeyCode::ArrowUp)
@@ -46,8 +46,8 @@ pub fn gather_player_input(
         None
     };
 
-    // If there was an input this frame, update the player's PendingIntent
     if let Some(event) = input_event {
+        // apply intent to the player
         for mut pending in &mut q_players {
             pending.0 = match event {
                 InputEvent::Move(dir) => Intent::Move(dir),
@@ -56,13 +56,17 @@ pub fn gather_player_input(
             };
         }
 
-        // Record the input in the replay log for replays
-        replay
-            .0
-            .push(RecordedInput { turn: turn.0, input: event });
+        // record input with current turn number
+        let current_turn = turn.0;
+        replay.0.push(RecordedInput {
+            turn: current_turn,
+            input: event,
+        });
+
+        // advance turn once per input
+        turn.0 += 1;
     }
 }
-
 
 pub fn plan_ai(mut q_ai: Query<&mut PendingIntent, With<crate::components::AI>>) {
     for mut intent in &mut q_ai {

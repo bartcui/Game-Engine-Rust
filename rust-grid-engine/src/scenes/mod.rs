@@ -1,9 +1,12 @@
 use crate::components::*;
-use crate::grid:: GridTransform;
+use crate::engine::TurnNumber;
+use crate::grid::GridTransform;
 use crate::intents::Intent;
+use crate::map::load_level_from_json;
 use bevy::prelude::*;
-use crate::map::load_level_from_json; 
-use std::fs;     
+use bevy::sprite::Text2d;
+use bevy::text::{TextFont, TextColor};
+use std::fs;
 
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum GameScene {
@@ -13,6 +16,9 @@ pub enum GameScene {
     GameOver,
 }
 
+#[derive(Component)]
+pub struct TurnHudText;
+
 pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
@@ -20,11 +26,15 @@ impl Plugin for ScenePlugin {
             .insert_resource(GridTransform::default())
             .add_systems(Startup, setup_camera)
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
-            .add_systems(OnEnter(GameScene::InGame), setup_game)
+            .add_systems(OnEnter(GameScene::InGame), (setup_game, setup_hud))
             .add_systems(OnExit(GameScene::InGame), teardown_game)
             .add_systems(
                 Update,
-                (sync_transforms,crate::grid::rebuild_occupancy).run_if(is_in_game_scene),
+                (
+                    sync_transforms,
+                    update_turn_hud,
+                )
+                    .run_if(is_in_game_scene),
             );
     }
 }
@@ -102,8 +112,46 @@ pub fn sync_transforms(
     }
 }
 
-fn teardown_game(mut commands: Commands, q: Query<Entity, With<Actor>>) {
-    for e in &q {
+
+fn setup_hud(mut commands: Commands) {
+    // Simple world-space text in the top-left-ish corner.
+    // You can tweak the position numbers to place it nicely above your grid.
+    commands.spawn((
+        Text2d::new("Turn: 0"),
+        // Use default font with a readable size.
+        TextFont::from_font_size(24.0),
+        TextColor(Color::WHITE),
+        Transform::from_xyz(-380.0, 260.0, 10.0),
+        TurnHudText,
+    ));
+}
+
+fn update_turn_hud(
+    turn: Res<TurnNumber>,
+    mut q: Query<&mut Text2d, With<TurnHudText>>,
+) {
+    // Only do work when the turn resource actually changes.
+    if !turn.is_changed() {
+        return;
+    }
+
+    for mut text in &mut q {
+        text.clear();
+        text.push_str(&format!("Turn: {}", turn.0));
+    }
+}
+
+fn teardown_game(
+    mut commands: Commands,
+    q_actors: Query<Entity, With<Actor>>,
+    q_hud: Query<Entity, With<TurnHudText>>,
+) {
+    // Despawn all game actors (player, enemies, etc.)
+    for e in &q_actors {
+        commands.entity(e).despawn();
+    }
+    // Despawn HUD text
+    for e in &q_hud {
         commands.entity(e).despawn();
     }
 }

@@ -50,6 +50,10 @@ Bart will focus on the data and presentation layer that connects the logic to wh
 After integrating our components, we will ship a small, polished chasing demo that proves the engine works end-to-end. Multiple rounds of testing are necessary to ensure the movement rules function smoothly within the grid and rendering system. By week 5, we will work on the simple game demo, showcase the engine’s features and the final proof that the framework works as intended. 
 
 
+Game control/key binding
+WSAD for directions
+R -> restart
+
 
 
 

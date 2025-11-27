@@ -44,16 +44,12 @@ impl Plugin for EnginePlugin {
                     crate::engine::schedule::commit_changes.in_set(TurnSystems::Commit),
                     crate::engine::schedule::cleanup_turn.in_set(TurnSystems::Cleanup),
                     // crate::grid::rebuild_occupancy.in_set(TurnSystems::Cleanup),
-                    bump_turn_number,
                 )
                     .run_if(crate::scenes::is_in_game_scene),
             );
     }
 }
 
-fn bump_turn_number(mut turns: ResMut<TurnNumber>) {
-    turns.0 += 1;
-}
 
 impl Default for TurnNumber {
     fn default() -> Self {
