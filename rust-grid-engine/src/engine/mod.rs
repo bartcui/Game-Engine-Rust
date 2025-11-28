@@ -44,8 +44,7 @@ impl Plugin for EnginePlugin {
                     crate::engine::schedule::commit_changes.in_set(TurnSystems::Commit),
                     crate::engine::schedule::cleanup_turn.in_set(TurnSystems::Cleanup),
                     // crate::grid::rebuild_occupancy.in_set(TurnSystems::Cleanup),
-                )
-                    .run_if(crate::scenes::is_in_game_scene),
+                ).run_if(crate::scenes::in_game_and_not_paused),
             );
     }
 }
