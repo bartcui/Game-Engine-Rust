@@ -19,6 +19,9 @@ pub enum GameScene {
 #[derive(Component)]
 pub struct TurnHudText;
 
+#[derive(Component)]
+struct MenuText;
+
 pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
@@ -26,15 +29,16 @@ impl Plugin for ScenePlugin {
             .insert_resource(GridTransform::default())
             .add_systems(Startup, setup_camera)
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
+            .add_systems(OnExit(GameScene::Menu), teardown_menu)
             .add_systems(OnEnter(GameScene::InGame), (setup_game, setup_hud))
             .add_systems(OnExit(GameScene::InGame), teardown_game)
             .add_systems(
                 Update,
                 (
-                    sync_transforms,
-                    update_turn_hud,
-                )
-                    .run_if(is_in_game_scene),
+                    menu_input_system.run_if(in_state(GameScene::Menu)),
+                    (sync_transforms, crate::grid::rebuild_occupancy, update_turn_hud)
+                        .run_if(in_state(GameScene::InGame)),
+                ),
             );
     }
 }
@@ -46,10 +50,30 @@ pub fn is_in_game_scene(state: Res<State<GameScene>>) -> bool {
 fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d);
 }
+// menu functions
+fn setup_menu(mut commands: Commands) {
+    commands.spawn((
+        Text2d::new("Demo\nPress ENTER to start"),
+        TextFont::from_font_size(32.0),
+        TextColor(Color::WHITE),
+        Transform::from_xyz(0.0, 0.0, 10.0),
+        MenuText,
+    ));
+}
 
-fn setup_menu(mut next: ResMut<NextState<GameScene>>) {
-    // Immediately jump into game for now
-    next.set(GameScene::InGame);
+fn menu_input_system(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut next: ResMut<NextState<GameScene>>,
+) {
+    if keyboard.just_pressed(KeyCode::Enter) {
+        next.set(GameScene::InGame);
+    }
+}
+
+fn teardown_menu(mut commands: Commands, q: Query<Entity, With<MenuText>>) {
+    for e in &q {
+        commands.entity(e).despawn();
+    }
 }
 
 fn setup_game(
