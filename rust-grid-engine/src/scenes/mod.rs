@@ -70,6 +70,47 @@ struct PauseMenuSelection {
     index: usize,
 }
 
+//LEVEL Loader
+#[derive(Resource)]
+pub struct LevelProgress {
+    pub level_paths: Vec<String>,
+    pub current: usize,
+}
+
+impl Default for LevelProgress {
+    fn default() -> Self {
+        Self {
+            level_paths: vec![
+                "assets/levels/level1.json".to_string(),
+                "assets/levels/level2.json".to_string(),
+                // add more here later
+            ],
+            current: 0,
+        }
+    }
+}
+
+// Pass level
+#[derive(Debug, Clone, Copy)]
+enum LevelCompleteItemKind {
+    NextLevel,
+    ExitGame,
+}
+
+#[derive(Component)]
+struct LevelCompleteRoot;
+
+#[derive(Component)]
+struct LevelCompleteItem {
+    index: usize,
+    kind: LevelCompleteItemKind,
+}
+
+#[derive(Resource, Default)]
+struct LevelCompleteSelection {
+    index: usize,
+}
+
 pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
@@ -78,6 +119,8 @@ impl Plugin for ScenePlugin {
             .insert_resource(PauseState::default())
             .insert_resource(MainMenuSelection::default())
             .insert_resource(PauseMenuSelection::default())
+            .insert_resource(LevelProgress::default())
+            .insert_resource(LevelCompleteSelection::default())
             .add_systems(Startup, setup_camera)
             // Menu enter/exit
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
@@ -87,21 +130,25 @@ impl Plugin for ScenePlugin {
             .add_systems(OnExit(GameScene::InGame), teardown_game)
             .add_systems(
                 Update,
-                (
-                    // menu page
-                    (menu_input_system, update_menu_visuals)
-                        .run_if(in_state(GameScene::Menu)),
-                    // pause window
-                    (pause_input_system, pause_menu_navigation_system, update_pause_menu_visuals)
-                        .run_if(in_state(GameScene::InGame)),
-                    // system freeze when paused
                     (
-                        sync_transforms,
-                        crate::grid::rebuild_occupancy,
-                        update_turn_hud,
-                    )
-                        .run_if(in_game_and_not_paused),
-                ),
+                        // MAIN MENU
+                        (menu_input_system, update_menu_visuals).run_if(in_state(GameScene::Menu)),
+
+                        // PAUSE MENU 
+                        (pause_input_system, pause_menu_navigation_system, update_pause_menu_visuals).run_if(in_state(GameScene::InGame)),
+
+                        // LEVEL COMPLETE MENU
+                        (level_complete_navigation_system, update_level_complete_visuals).run_if(in_state(GameScene::InGame)),
+
+                        // freeze when paused
+                        (
+                            sync_transforms,
+                            crate::grid::rebuild_occupancy,
+                            update_turn_hud,
+                            check_level_complete,
+                        )
+                            .run_if(in_game_and_not_paused),
+                    ),
             );
     }
 }
@@ -161,6 +208,7 @@ fn menu_input_system(
     mut selection: ResMut<MainMenuSelection>,
     q_items: Query<&MainMenuItem>,
     mut next: ResMut<NextState<GameScene>>,
+    mut progress: ResMut<LevelProgress>, 
 ) {
     let max_index = q_items.iter().map(|c| c.index).max().unwrap_or(0);
 
@@ -181,11 +229,10 @@ fn menu_input_system(
         if let Some(item) = q_items.iter().find(|c| c.index == selection.index) {
             match item.kind {
                 MainMenuItemKind::NewGame => {
+                    progress.current = 0;            // start from level 0
                     next.set(GameScene::InGame);
                 }
-                MainMenuItemKind::Settings => {
-                    info!("Settings to be implemented");
-                }
+                MainMenuItemKind::Settings => { /* ... */ }
                 MainMenuItemKind::Exit => {
                     process::exit(0);
                 }
@@ -217,17 +264,31 @@ fn teardown_menu(mut commands: Commands, q: Query<Entity, With<MenuText>>) {
 fn setup_game(
     mut commands: Commands,
     grid_tf: Res<GridTransform>,
-    mut turn: ResMut<TurnNumber>, 
+    mut turn: ResMut<TurnNumber>,
+    progress: Res<LevelProgress>,
 ) {
-    turn.0 = 0;
-    // game file loaded here
-    let bytes = fs::read("assets/levels/level2.json")
-        .expect("failed to read assets/levels/level2.json");
-    let level = load_level_from_json(&bytes).expect("invalid level JSON");
+    spawn_current_level(&mut commands, &grid_tf, &mut turn, &progress);
+}
 
-    //if let Some(seed) = level.seed {
-      //  turn_rng.0 = StdRng::seed_from_u64(seed);
-    //}
+fn spawn_current_level(
+    commands: &mut Commands,
+    grid_tf: &GridTransform,
+    turn: &mut TurnNumber,
+    progress: &LevelProgress,
+) {
+    // Reset per-run state
+    turn.0 = 0;
+
+    // Pick current level path
+    let path = progress
+        .level_paths
+        .get(progress.current)
+        .expect("LevelProgress.current out of range");
+
+    let bytes = fs::read(path).unwrap_or_else(|e| {
+        panic!("Failed to read level file {path}: {e}");
+    });
+    let level = load_level_from_json(&bytes).expect("invalid level JSON");
 
     // player
     let p = level.player_start;
@@ -244,7 +305,7 @@ fn setup_game(
         Transform::from_translation(grid_tf.to_world(p)),
     ));
 
-    // walls
+    //walls 
     for w in level.walls {
         commands.spawn((
             Blocking,
@@ -290,8 +351,8 @@ fn setup_game(
     for d in level.doors {
         let coord = GridCoord::new(d.x, d.y);
         commands.spawn((
-            Door,       
-            Blocking,   
+            Door,
+            Blocking,
             Position(coord),
             Sprite {
                 color: if d.locked {
@@ -316,7 +377,7 @@ fn setup_game(
             Position(coord),
             PendingIntent(Intent::Wait),
             Sprite {
-                color: Color::srgb(0.8, 0.2, 0.8), 
+                color: Color::srgb(0.8, 0.2, 0.8),
                 custom_size: Some(Vec2::splat(grid_tf.tile_size)),
                 ..Default::default()
             },
@@ -324,6 +385,7 @@ fn setup_game(
         ));
     }
 }
+
 
 pub fn sync_transforms(
     grid_transform: Res<GridTransform>,
@@ -364,13 +426,16 @@ fn teardown_game(
     mut pause: ResMut<PauseState>,
     q_world: Query<Entity, Or<(With<Position>, With<Actor>, With<TurnHudText>)>>,
     q_pause_ui: Query<Entity, With<PauseMenuRoot>>,
+    q_level_complete_ui: Query<Entity, With<LevelCompleteRoot>>,
 ) {
     pause.paused = false;
-    // despawn all game-world entities
     for e in &q_world {
         commands.entity(e).despawn();
     }
     for e in &q_pause_ui {
+        commands.entity(e).despawn();
+    }
+    for e in &q_level_complete_ui {
         commands.entity(e).despawn();
     }
 }
@@ -508,4 +573,170 @@ fn update_pause_menu_visuals(
         };
     }
 }
+
+fn check_level_complete(
+    mut pause: ResMut<PauseState>,
+    mut selection: ResMut<LevelCompleteSelection>,
+    mut commands: Commands,
+    q_player: Query<&Position, With<Player>>,
+    q_goals: Query<&Position, With<Goal>>,
+    q_window: Query<Entity, With<LevelCompleteRoot>>,
+) {
+    if !q_window.is_empty() {
+        return;
+    }
+
+    let Ok(player_pos) = q_player.single() else {
+        return;
+    };
+
+    for goal_pos in &q_goals {
+        if player_pos.0 == goal_pos.0 {
+            // pause
+            pause.paused = true;
+            // Init selection
+            selection.index = 0;
+            // pop window
+            spawn_level_complete_window(&mut commands);
+            break;
+        }
+    }
+}
+
+fn spawn_level_complete_window(commands: &mut Commands) {
+    // background
+    commands.spawn((
+        Sprite {
+            color: Color::srgb(0.0, 0.0, 0.0),
+            custom_size: Some(Vec2::new(360.0, 220.0)),
+            ..Default::default()
+        },
+        Transform::from_xyz(0.0, 0.0, 70.0),
+        LevelCompleteRoot,
+    ));
+    // text and button
+    commands.spawn((
+        Text2d::new("Level Complete!"),
+        TextFont::from_font_size(32.0),
+        TextColor(Color::WHITE),
+        Transform::from_xyz(0.0, 70.0, 80.0),
+        LevelCompleteRoot,
+    ));
+    spawn_level_complete_item(commands, 0, LevelCompleteItemKind::NextLevel, "Next Level", 20.0);
+    spawn_level_complete_item(commands, 1, LevelCompleteItemKind::ExitGame, "Exit Game", -20.0);
+}
+
+fn spawn_level_complete_item(
+    commands: &mut Commands,
+    index: usize,
+    kind: LevelCompleteItemKind,
+    label: &str,
+    y: f32,
+) {
+    commands.spawn((
+        Text2d::new(label),
+        TextFont::from_font_size(24.0),
+        TextColor(Color::WHITE),
+        Transform::from_xyz(0.0, y, 80.0),
+        LevelCompleteRoot,
+        LevelCompleteItem { index, kind },
+    ));
+}
+
+
+fn level_complete_navigation_system(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut selection: ResMut<LevelCompleteSelection>,
+    mut pause: ResMut<PauseState>,
+    mut progress: ResMut<LevelProgress>,
+    mut next: ResMut<NextState<GameScene>>,
+    mut commands: Commands,
+    q_items: Query<&LevelCompleteItem>,
+    q_roots: Query<Entity, With<LevelCompleteRoot>>,
+    q_world: Query<Entity, Or<(With<Position>, With<Actor>, With<TurnHudText>)>>,
+    grid_tf: Res<GridTransform>,
+    mut turn: ResMut<TurnNumber>,
+) {
+    // Only run if the window is visible
+    if q_roots.is_empty() {
+        return;
+    }
+
+    let max_index = q_items.iter().map(|c| c.index).max().unwrap_or(0);
+
+    // Navigate up/down
+    if keyboard.just_pressed(KeyCode::ArrowUp) || keyboard.just_pressed(KeyCode::KeyW) {
+        if selection.index > 0 {
+            selection.index -= 1;
+        }
+    }
+    if keyboard.just_pressed(KeyCode::ArrowDown) || keyboard.just_pressed(KeyCode::KeyS) {
+        if selection.index < max_index {
+            selection.index += 1;
+        }
+    }
+
+    // Activate
+    if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::NumpadEnter) {
+        if let Some(item) = q_items.iter().find(|c| c.index == selection.index) {
+            match item.kind {
+                LevelCompleteItemKind::NextLevel => {
+                    if progress.current + 1 < progress.level_paths.len() {
+                        progress.current += 1;
+
+                        for e in &q_world {
+                            commands.entity(e).despawn();
+                        }
+                        for e in &q_roots {
+                            commands.entity(e).despawn();
+                        }
+                        pause.paused = false;
+                        spawn_current_level(
+                            &mut commands,
+                            &grid_tf,
+                            &mut turn,
+                            &progress,
+                        );
+                    } else {
+                        // No more levels -> GameOver 
+                        pause.paused = false;
+                        for e in &q_roots {
+                            commands.entity(e).despawn();
+                        }
+                        next.set(GameScene::GameOver);
+                    }
+                }
+                LevelCompleteItemKind::ExitGame => {
+                    // main menu
+                    pause.paused = false;
+
+                    // Clear world
+                    for e in &q_world {
+                        commands.entity(e).despawn();
+                    }
+                    for e in &q_roots {
+                        commands.entity(e).despawn();
+                    }
+
+                    next.set(GameScene::Menu);
+                }
+            }
+        }
+    }
+}
+
+
+fn update_level_complete_visuals(
+    selection: Res<LevelCompleteSelection>,
+    mut q: Query<(&LevelCompleteItem, &mut TextColor)>,
+) {
+    for (item, mut color) in &mut q {
+        color.0 = if item.index == selection.index {
+            Color::srgb(1.0, 1.0, 0.0)
+        } else {
+            Color::WHITE
+        };
+    }
+}
+
 
