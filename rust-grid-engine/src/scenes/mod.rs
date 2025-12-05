@@ -28,6 +28,7 @@ struct MenuText;
 #[derive(Debug, Clone, Copy)]
 enum MainMenuItemKind {
     NewGame,
+    LoadGame,
     Settings,
     Exit,
 }
@@ -53,6 +54,7 @@ pub struct PauseState {
 #[derive(Debug, Clone, Copy)]
 enum PauseMenuItemKind {
     Resume,
+    SaveGame,
     BackToMenu,
 }
 
@@ -110,6 +112,12 @@ struct LevelCompleteItem {
 struct LevelCompleteSelection {
     index: usize,
 }
+// Save
+#[derive(Resource, Default)]
+pub struct SaveSlot {
+    pub has_save: bool,
+    pub level_index: usize,
+}
 
 // Game Over
 #[derive(Component)]
@@ -125,6 +133,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(PauseMenuSelection::default())
             .insert_resource(LevelProgress::default())
             .insert_resource(LevelCompleteSelection::default())
+            .insert_resource(SaveSlot::default()) 
             .add_systems(Startup, setup_camera)
             // Menu enter/exit
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
@@ -208,9 +217,10 @@ fn setup_menu(mut commands: Commands, mut selection: ResMut<MainMenuSelection>) 
         ));
     }
 
-    spawn_item(&mut commands, 0, MainMenuItemKind::NewGame, "New Game", 20.0);
-    spawn_item(&mut commands, 1, MainMenuItemKind::Settings, "Settings", -20.0);
-    spawn_item(&mut commands, 2, MainMenuItemKind::Exit, "Exit", -60.0);
+    spawn_item(&mut commands, 0, MainMenuItemKind::NewGame,  "New Game",  30.0);
+    spawn_item(&mut commands, 1, MainMenuItemKind::LoadGame, "Load Game", -10.0);
+    spawn_item(&mut commands, 2, MainMenuItemKind::Settings, "Settings", -50.0);
+    spawn_item(&mut commands, 3, MainMenuItemKind::Exit,     "Exit",     -90.0);
 }
 
 fn menu_input_system(
@@ -219,6 +229,7 @@ fn menu_input_system(
     q_items: Query<&MainMenuItem>,
     mut next: ResMut<NextState<GameScene>>,
     mut progress: ResMut<LevelProgress>, 
+    save_slot: Res<SaveSlot>, 
 ) {
     let max_index = q_items.iter().map(|c| c.index).max().unwrap_or(0);
 
@@ -239,10 +250,20 @@ fn menu_input_system(
         if let Some(item) = q_items.iter().find(|c| c.index == selection.index) {
             match item.kind {
                 MainMenuItemKind::NewGame => {
-                    progress.current = 0;            // start from level 0
+                    progress.current = 0;
                     next.set(GameScene::InGame);
                 }
-                MainMenuItemKind::Settings => { /* ... */ }
+                MainMenuItemKind::LoadGame => {
+                    if save_slot.has_save {
+                        progress.current = save_slot.level_index;
+                        next.set(GameScene::InGame);
+                    } else {
+                        info!("No saved game yet.");
+                    }
+                }
+                MainMenuItemKind::Settings => {
+                    info!("Settings TBD");
+                }
                 MainMenuItemKind::Exit => {
                     process::exit(0);
                 }
@@ -463,7 +484,7 @@ fn pause_input_system(
         if pause.paused {
             selection.index = 0;
 
-            // Background panel
+            // Background
             commands.spawn((
                 Sprite {
                     color: Color::srgb(0.0, 0.0, 0.0),
@@ -484,13 +505,14 @@ fn pause_input_system(
             ));
 
             // Buttons
-            spawn_pause_item(&mut commands, 0, PauseMenuItemKind::Resume, "Resume", 20.0);
+            spawn_pause_item(&mut commands, 0, PauseMenuItemKind::Resume, "Resume", 30.0);
+            spawn_pause_item(&mut commands, 1, PauseMenuItemKind::SaveGame, "Save Game", -10.0);
             spawn_pause_item(
                 &mut commands,
-                1,
+                2,
                 PauseMenuItemKind::BackToMenu,
-                "Return to Main Menu",
-                -20.0,
+                "Back to Main Menu",
+                -50.0,
             );
         } else {
             // remove all pause menu UI
@@ -526,6 +548,8 @@ fn pause_menu_navigation_system(
     q_items: Query<&PauseMenuItem>,
     q_roots: Query<Entity, With<PauseMenuRoot>>,
     mut commands: Commands,
+    mut save_slot: ResMut<SaveSlot>,         
+    progress: Res<LevelProgress>,  
 ) {
     if !pause.paused {
         return;
@@ -552,11 +576,18 @@ fn pause_menu_navigation_system(
                 PauseMenuItemKind::Resume => {
                     pause.paused = false;
                 }
+                PauseMenuItemKind::SaveGame => {
+                    // Save current level
+                    save_slot.has_save = true;
+                    save_slot.level_index = progress.current;
+                    info!("Game saved at level index {}", progress.current);
+                }
                 PauseMenuItemKind::BackToMenu => {
                     pause.paused = false;
                     next.set(GameScene::Menu);
                 }
             }
+
 
             // Remove pause menu UI
             for e in &q_roots {
@@ -768,17 +799,13 @@ fn setup_game_over(mut commands: Commands) {
         Transform::from_xyz(0.0, 0.0, 70.0),
         GameOverRoot,
     ));
-
-    // Title
     commands.spawn((
-        Text2d::new("All levels complete!"),
+        Text2d::new("All Levels Complete!"),
         TextFont::from_font_size(32.0),
         TextColor(Color::WHITE),
         Transform::from_xyz(0.0, 60.0, 80.0),
         GameOverRoot,
     ));
-
-    // Button / instruction text
     commands.spawn((
         Text2d::new("Press ENTER to return to menu"),
         TextFont::from_font_size(24.0),
