@@ -111,6 +111,10 @@ struct LevelCompleteSelection {
     index: usize,
 }
 
+// Game Over
+#[derive(Component)]
+struct GameOverRoot;
+
 pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
@@ -128,6 +132,9 @@ impl Plugin for ScenePlugin {
             // InGame enter/exit
             .add_systems(OnEnter(GameScene::InGame), (setup_game, setup_hud))
             .add_systems(OnExit(GameScene::InGame), teardown_game)
+            // GameOver
+            .add_systems(OnEnter(GameScene::GameOver), setup_game_over)
+            .add_systems(OnExit(GameScene::GameOver), teardown_game_over)
             .add_systems(
                 Update,
                     (
@@ -139,6 +146,9 @@ impl Plugin for ScenePlugin {
 
                         // LEVEL COMPLETE MENU
                         (level_complete_navigation_system, update_level_complete_visuals).run_if(in_state(GameScene::InGame)),
+                        
+                        // Game over input (in GameOver scene)
+                        game_over_input_system.run_if(in_state(GameScene::GameOver)),
 
                         // freeze when paused
                         (
@@ -578,6 +588,8 @@ fn check_level_complete(
     mut pause: ResMut<PauseState>,
     mut selection: ResMut<LevelCompleteSelection>,
     mut commands: Commands,
+    progress: Res<LevelProgress>,
+    mut next: ResMut<NextState<GameScene>>,
     q_player: Query<&Position, With<Player>>,
     q_goals: Query<&Position, With<Goal>>,
     q_window: Query<Entity, With<LevelCompleteRoot>>,
@@ -592,12 +604,18 @@ fn check_level_complete(
 
     for goal_pos in &q_goals {
         if player_pos.0 == goal_pos.0 {
-            // pause
-            pause.paused = true;
-            // Init selection
-            selection.index = 0;
-            // pop window
-            spawn_level_complete_window(&mut commands);
+            let is_last_level = progress.current + 1 >= progress.level_paths.len();
+
+            if is_last_level {
+                // Last level > GameOver 
+                next.set(GameScene::GameOver);
+            } else {
+                // More levels => Level Complete window
+                pause.paused = true;
+                selection.index = 0;
+                spawn_level_complete_window(&mut commands);
+            }
+
             break;
         }
     }
@@ -739,4 +757,48 @@ fn update_level_complete_visuals(
     }
 }
 
+fn setup_game_over(mut commands: Commands) {
+    // Background
+    commands.spawn((
+        Sprite {
+            color: Color::srgb(0.0, 0.0, 0.0),
+            custom_size: Some(Vec2::new(360.0, 220.0)),
+            ..Default::default()
+        },
+        Transform::from_xyz(0.0, 0.0, 70.0),
+        GameOverRoot,
+    ));
 
+    // Title
+    commands.spawn((
+        Text2d::new("All levels complete!"),
+        TextFont::from_font_size(32.0),
+        TextColor(Color::WHITE),
+        Transform::from_xyz(0.0, 60.0, 80.0),
+        GameOverRoot,
+    ));
+
+    // Button / instruction text
+    commands.spawn((
+        Text2d::new("Press ENTER to return to menu"),
+        TextFont::from_font_size(24.0),
+        TextColor(Color::srgb(1.0, 1.0, 0.0)),
+        Transform::from_xyz(0.0, 10.0, 80.0),
+        GameOverRoot,
+    ));
+}
+
+fn teardown_game_over(mut commands: Commands, q: Query<Entity, With<GameOverRoot>>) {
+    for e in &q {
+        commands.entity(e).despawn();
+    }
+}
+
+fn game_over_input_system(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut next: ResMut<NextState<GameScene>>,
+) {
+    if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::NumpadEnter) {
+        next.set(GameScene::Menu);
+    }
+}
