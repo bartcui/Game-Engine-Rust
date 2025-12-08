@@ -22,7 +22,11 @@ Although the new Bevy 0.17 recently introduced initial tilemap rendering support
 
 ---
 ## **2. Objective**
-Our goal is to design a small 2D game engine in Rust, built on top of Bevy for turn-based and grid-based puzzle games. We will use Bevy’s ECS, scheduling, and plugin model, and extend it with a deterministic turn scheduler and a grid-native utility layer. The engine will allow game developers to load grid levels from data files and provide reproducible gameplay using seeded random numbers and replays. We will create a demo that showcases level loading, scene changing (Menu → Game In → Game Over), and simple gameplay with full player and opponent movements.
+Our goal is to design a small 2D game engine in Rust, built on top of Bevy for turn-based and grid-based puzzle games. We will use Bevy’s ECS, scheduling, and plugin model, and extend it with a deterministic turn scheduler and a grid-native utility layer. The engine aims to provide a data-driven structure where levels can be authored in external JSON files, loaded at runtime, and played through a consistent turn cycle using Bevy’s ECS and scheduling system.
+
+The system is designed to handle core gameplay components such as player actions, simple AI behaviour, collisions, traps, doors, and goal detection, all operating on a tile-based grid with occupancy tracking and world-grid coordinate mapping. To support a complete gameplay loop, the engine includes scene management for navigating between the main menu, gameplay, pause overlay, level completion screen, and final game over state. A turn counter HUD, pause menu, and level-progression system enable users to experience multiple stages in sequence.
+
+Overall, the project aims to provide a functional foundation for building small deterministic puzzle games, offering clear state transitions, reproducible turn logic, and an easy-to-extend architecture for future gameplay features.
 
 ## **3. Features**
 
@@ -70,6 +74,7 @@ After integrating our components, we will ship a small, polished chasing demo th
 
 ---
 ## **Lessons learned and concluding remarks**
+
 
 
 
