@@ -14,15 +14,11 @@ Our motivation for picking this project comes from both personal interest and cu
 
 Also, since Rust’s emphasis is on memory safety and concurrency without a garbage collector makes it particularly appealing for systems-level development. Having used C++ in past projects, we’re hoping to explore how Rust’s ownership model can improve both developer productivity and runtime safety in a game engine context. Given the scope of a course project, we plan to focus on implementing a minimal prototype featuring a basic rendering pipeline, level loading, and a simplified ECS framework. 
 
-## Novelty
-
-Since we are new to the Rust ecosystem, we are not fully aware of all the gaps that currently exist or which ones need the most attention. However, based on our research on game engine design and Bevy, we found that Bevy is good at real-time, parallel systems but is not directly aimed at turn-based, grid-based games. In such games, reproducibility is crucial and identical input sequences should always lead to the same outcomes. Bevy does not guarantee this behaviour by default. To address this, we will try to implement a custom turn scheduler that ensures consistent and reproducible state transitions.
-
-Although the new Bevy 0.17 recently introduced initial tilemap rendering support, it still lacks native grid utilities such as coordinate-to-world mapping, occupancy management, and pathfinding. We will try to build the engine to fill this space by adding a grid-aware foundation and reusable utilities designed for the needs of turn-based puzzle design, and hopefully can represent a small but meaningful contribution to the Rust game development ecosystem.
+Based on our research on game engine design and Bevy, we found that Bevy is good at real-time, parallel systems but is not directly aimed at turn-based, grid-based games. In such games, reproducibility is crucial and identical input sequences should always lead to the same outcomes. Bevy does not guarantee this behaviour by default. To address this, we will try to implement a custom turn scheduler that ensures consistent and reproducible state transitions. Although the new Bevy 0.17 recently introduced initial tilemap rendering support, it still lacks native grid utilities such as coordinate-to-world mapping, occupancy management, and pathfinding. That is why we try to build the engine to fill this space by adding a grid-aware foundation and reusable utilities designed for the needs of turn-based puzzle design, and hopefully can represent a small but meaningful contribution to the Rust game development ecosystem.
 
 ---
 ## **2. Objective**
-Our goal is to design a small 2D game engine in Rust, built on top of Bevy for turn-based and grid-based puzzle games. We will use Bevy’s ECS, scheduling, and plugin model, and extend it with a deterministic turn scheduler and a grid-native utility layer. The engine aims to provide a data-driven structure where levels can be authored in external JSON files, loaded at runtime, and played through a consistent turn cycle using Bevy’s ECS and scheduling system.
+The objective of this project is to design and implement a compact 2D game engine in Rust, built on top of Bevy for turn-based and grid-based puzzle games. The engine should use Bevy’s ECS architecture, scheduling system and plugin model. It aims to provide a data-driven structure where levels can be authored in external JSON files, loaded at runtime, and played through a consistent turn cycle using Bevy’s ECS and scheduling system.
 
 The system is designed to handle core gameplay components such as player actions, simple AI behaviour, collisions, traps, doors, and goal detection, all operating on a tile-based grid with occupancy tracking and world-grid coordinate mapping. To support a complete gameplay loop, the engine includes scene management for navigating between the main menu, gameplay, pause overlay, level completion screen, and final game over state. A turn counter HUD, pause menu, and level-progression system enable users to experience multiple stages in sequence.
 
@@ -74,6 +70,7 @@ After integrating our components, we will ship a small, polished chasing demo th
 
 ---
 ## **Lessons learned and concluding remarks**
+
 
 
 
