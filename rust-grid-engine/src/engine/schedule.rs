@@ -3,6 +3,7 @@ use crate::components::{Goal, PendingIntent, Position, Trap};
 use crate::engine::rules::{ActiveRules, MoveCheck, ReachedGoal, SteppedOnTrap};
 use crate::intents::Intent;
 use crate::grid::occupancy::OccupancyIndex;
+use crate::engine::TurnNumber;
 use bevy::prelude::*;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -53,12 +54,22 @@ pub fn validate_moves(
     }
 }
 
-pub fn commit_changes(mut q: Query<(&mut Position, Option<&mut PendingIntent>)>) {
+pub fn commit_changes(mut q: Query<(&mut Position, Option<&mut PendingIntent>)>,
+mut turn: ResMut<TurnNumber>) {
+    let mut advanced_this_tick = false;
+
     for (mut pos, pending_intent) in &mut q {
         if let Some(mut intent) = pending_intent {
             match intent.0 {
                 Intent::Move(dir) => {
                     pos.0 = dir.step(pos.0);
+
+                    // advance turn once for the whole tick,
+                    // regardless of how many actors move
+                    if !advanced_this_tick {
+                        turn.0 += 1;
+                        advanced_this_tick = true;
+                    }
                 }
                 Intent::Wait => {
                     // do nothing

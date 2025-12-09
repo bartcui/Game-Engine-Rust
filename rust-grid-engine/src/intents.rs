@@ -23,7 +23,7 @@ pub fn gather_player_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut q_players: Query<&mut PendingIntent, With<Player>>,
     mut replay: ResMut<ReplayLog>,
-    mut turn: ResMut<TurnNumber>, 
+    turn: ResMut<TurnNumber>
 ) {
     // updated
     let input_event = if keyboard.just_pressed(KeyCode::ArrowUp)
@@ -62,9 +62,6 @@ pub fn gather_player_input(
             turn: current_turn,
             input: event,
         });
-
-        // advance turn once per input
-        turn.0 += 1;
     }
 }
 
