@@ -1,9 +1,9 @@
 use bevy::prelude::*;
-pub mod types;
 pub mod occupancy;
-pub use types::*;   
-pub use occupancy::OccupancyIndex;     
-use crate::components::{Position, Blocking, Actor};
+pub mod types;
+use crate::components::{Actor, Blocking, Position};
+pub use occupancy::OccupancyIndex;
+pub use types::*;
 
 #[derive(Resource)]
 pub struct GridTransform {
@@ -54,7 +54,7 @@ pub fn neighbours_4(c: GridCoord) -> [GridCoord; 4] {
     ]
 }
 
-// 8 neighbours for diagonals 
+// 8 neighbours for diagonals
 pub fn neighbours_8(c: GridCoord) -> [GridCoord; 8] {
     [
         GridCoord::new(c.x + 1, c.y),
@@ -83,9 +83,7 @@ pub fn rebuild_occupancy(
         // Put blocking things into Blockers layer
         if blocking.is_some() {
             occ.insert(Layer::Blockers, pos.0, entity);
-        }
-        // Put actors into Actors layer
-        if actor.is_some() {
+        } else if actor.is_some() {
             occ.insert(Layer::Actors, pos.0, entity);
         }
     }

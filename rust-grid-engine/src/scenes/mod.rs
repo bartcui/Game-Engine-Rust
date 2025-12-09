@@ -1,13 +1,14 @@
 use crate::components::*;
+use crate::engine::rules::ReachedGoal;
 use crate::engine::TurnNumber;
-use crate::grid::{GridCoord,GridTransform};
+use crate::grid::{GridCoord, GridTransform};
 use crate::intents::Intent;
 use crate::map::load_level_from_json;
+use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::sprite::Text2d;
-use bevy::text::{TextFont, TextColor};
+use bevy::text::{TextColor, TextFont};
 use std::fs;
-use bevy::app::AppExit;
 use std::process;
 
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
@@ -24,7 +25,7 @@ pub struct TurnHudText;
 // MAIN MENU
 
 #[derive(Component)]
-struct MenuText;         
+struct MenuText;
 #[derive(Debug, Clone, Copy)]
 enum MainMenuItemKind {
     NewGame,
@@ -59,7 +60,7 @@ enum PauseMenuItemKind {
 }
 
 #[derive(Component)]
-struct PauseMenuRoot; 
+struct PauseMenuRoot;
 
 #[derive(Component)]
 struct PauseMenuItem {
@@ -133,7 +134,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(PauseMenuSelection::default())
             .insert_resource(LevelProgress::default())
             .insert_resource(LevelCompleteSelection::default())
-            .insert_resource(SaveSlot::default()) 
+            .insert_resource(SaveSlot::default())
             .add_systems(Startup, setup_camera)
             // Menu enter/exit
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
@@ -146,28 +147,28 @@ impl Plugin for ScenePlugin {
             .add_systems(OnExit(GameScene::GameOver), teardown_game_over)
             .add_systems(
                 Update,
+                (
+                    // MAIN MENU
+                    (menu_input_system, update_menu_visuals).run_if(in_state(GameScene::Menu)),
+                    // PAUSE MENU
                     (
-                        // MAIN MENU
-                        (menu_input_system, update_menu_visuals).run_if(in_state(GameScene::Menu)),
-
-                        // PAUSE MENU 
-                        (pause_input_system, pause_menu_navigation_system, update_pause_menu_visuals).run_if(in_state(GameScene::InGame)),
-
-                        // LEVEL COMPLETE MENU
-                        (level_complete_navigation_system, update_level_complete_visuals).run_if(in_state(GameScene::InGame)),
-                        
-                        // Game over input (in GameOver scene)
-                        game_over_input_system.run_if(in_state(GameScene::GameOver)),
-
-                        // freeze when paused
-                        (
-                            sync_transforms,
-                            crate::grid::rebuild_occupancy,
-                            update_turn_hud,
-                            check_level_complete,
-                        )
-                            .run_if(in_game_and_not_paused),
-                    ),
+                        pause_input_system,
+                        pause_menu_navigation_system,
+                        update_pause_menu_visuals,
+                    )
+                        .run_if(in_state(GameScene::InGame)),
+                    // LEVEL COMPLETE MENU
+                    (
+                        level_complete_navigation_system,
+                        update_level_complete_visuals,
+                    )
+                        .run_if(in_state(GameScene::InGame)),
+                    // Game over input (in GameOver scene)
+                    game_over_input_system.run_if(in_state(GameScene::GameOver)),
+                    // freeze when paused
+                    (sync_transforms, update_turn_hud, handle_goal_reached_events)
+                        .run_if(in_game_and_not_paused),
+                ),
             );
     }
 }
@@ -176,10 +177,7 @@ pub fn is_in_game_scene(state: Res<State<GameScene>>) -> bool {
     *state.get() == GameScene::InGame
 }
 
-pub fn in_game_and_not_paused(
-    state: Res<State<GameScene>>,
-    pause: Res<PauseState>,
-) -> bool {
+pub fn in_game_and_not_paused(state: Res<State<GameScene>>, pause: Res<PauseState>) -> bool {
     *state.get() == GameScene::InGame && !pause.paused
 }
 
@@ -217,10 +215,28 @@ fn setup_menu(mut commands: Commands, mut selection: ResMut<MainMenuSelection>) 
         ));
     }
 
-    spawn_item(&mut commands, 0, MainMenuItemKind::NewGame,  "New Game",  30.0);
-    spawn_item(&mut commands, 1, MainMenuItemKind::LoadGame, "Load Game", -10.0);
-    spawn_item(&mut commands, 2, MainMenuItemKind::Settings, "Settings", -50.0);
-    spawn_item(&mut commands, 3, MainMenuItemKind::Exit,     "Exit",     -90.0);
+    spawn_item(
+        &mut commands,
+        0,
+        MainMenuItemKind::NewGame,
+        "New Game",
+        30.0,
+    );
+    spawn_item(
+        &mut commands,
+        1,
+        MainMenuItemKind::LoadGame,
+        "Load Game",
+        -10.0,
+    );
+    spawn_item(
+        &mut commands,
+        2,
+        MainMenuItemKind::Settings,
+        "Settings",
+        -50.0,
+    );
+    spawn_item(&mut commands, 3, MainMenuItemKind::Exit, "Exit", -90.0);
 }
 
 fn menu_input_system(
@@ -228,8 +244,8 @@ fn menu_input_system(
     mut selection: ResMut<MainMenuSelection>,
     q_items: Query<&MainMenuItem>,
     mut next: ResMut<NextState<GameScene>>,
-    mut progress: ResMut<LevelProgress>, 
-    save_slot: Res<SaveSlot>, 
+    mut progress: ResMut<LevelProgress>,
+    save_slot: Res<SaveSlot>,
 ) {
     let max_index = q_items.iter().map(|c| c.index).max().unwrap_or(0);
 
@@ -278,7 +294,7 @@ fn update_menu_visuals(
 ) {
     for (item, mut color) in &mut q {
         color.0 = if item.index == selection.index {
-            Color::srgb(1.0, 1.0, 0.0) 
+            Color::srgb(1.0, 1.0, 0.0)
         } else {
             Color::WHITE
         };
@@ -290,7 +306,6 @@ fn teardown_menu(mut commands: Commands, q: Query<Entity, With<MenuText>>) {
         commands.entity(e).despawn();
     }
 }
-
 
 fn setup_game(
     mut commands: Commands,
@@ -336,7 +351,7 @@ fn spawn_current_level(
         Transform::from_translation(grid_tf.to_world(p)),
     ));
 
-    //walls 
+    //walls
     for w in level.walls {
         commands.spawn((
             Blocking,
@@ -417,7 +432,6 @@ fn spawn_current_level(
     }
 }
 
-
 pub fn sync_transforms(
     grid_transform: Res<GridTransform>,
     mut q: Query<(&Position, &mut Transform)>,
@@ -426,7 +440,6 @@ pub fn sync_transforms(
         transform.translation = grid_transform.to_world(pos.0);
     }
 }
-
 
 fn setup_hud(mut commands: Commands) {
     commands.spawn((
@@ -438,10 +451,7 @@ fn setup_hud(mut commands: Commands) {
     ));
 }
 
-fn update_turn_hud(
-    turn: Res<TurnNumber>,
-    mut q: Query<&mut Text2d, With<TurnHudText>>,
-) {
+fn update_turn_hud(turn: Res<TurnNumber>, mut q: Query<&mut Text2d, With<TurnHudText>>) {
     if !turn.is_changed() {
         return;
     }
@@ -506,7 +516,13 @@ fn pause_input_system(
 
             // Buttons
             spawn_pause_item(&mut commands, 0, PauseMenuItemKind::Resume, "Resume", 30.0);
-            spawn_pause_item(&mut commands, 1, PauseMenuItemKind::SaveGame, "Save Game", -10.0);
+            spawn_pause_item(
+                &mut commands,
+                1,
+                PauseMenuItemKind::SaveGame,
+                "Save Game",
+                -10.0,
+            );
             spawn_pause_item(
                 &mut commands,
                 2,
@@ -548,8 +564,8 @@ fn pause_menu_navigation_system(
     q_items: Query<&PauseMenuItem>,
     q_roots: Query<Entity, With<PauseMenuRoot>>,
     mut commands: Commands,
-    mut save_slot: ResMut<SaveSlot>,         
-    progress: Res<LevelProgress>,  
+    mut save_slot: ResMut<SaveSlot>,
+    progress: Res<LevelProgress>,
 ) {
     if !pause.paused {
         return;
@@ -588,7 +604,6 @@ fn pause_menu_navigation_system(
                 }
             }
 
-
             // Remove pause menu UI
             for e in &q_roots {
                 commands.entity(e).despawn();
@@ -615,40 +630,43 @@ fn update_pause_menu_visuals(
     }
 }
 
-fn check_level_complete(
+fn handle_goal_reached_events(
+    mut ev_goal: MessageReader<ReachedGoal>,
     mut pause: ResMut<PauseState>,
     mut selection: ResMut<LevelCompleteSelection>,
     mut commands: Commands,
     progress: Res<LevelProgress>,
     mut next: ResMut<NextState<GameScene>>,
-    q_player: Query<&Position, With<Player>>,
-    q_goals: Query<&Position, With<Goal>>,
     q_window: Query<Entity, With<LevelCompleteRoot>>,
 ) {
+    // If a level-complete window is already visible, don't spawn another
     if !q_window.is_empty() {
+        // still drain the events to avoid buildup
+        for _ in ev_goal.read() {}
         return;
     }
 
-    let Ok(player_pos) = q_player.single() else {
+    // We only care whether at least one goal event happened this frame
+    let mut triggered = false;
+    for _event in ev_goal.read() {
+        triggered = true;
+        break;
+    }
+
+    if !triggered {
         return;
-    };
+    }
 
-    for goal_pos in &q_goals {
-        if player_pos.0 == goal_pos.0 {
-            let is_last_level = progress.current + 1 >= progress.level_paths.len();
+    let is_last_level = progress.current + 1 >= progress.level_paths.len();
 
-            if is_last_level {
-                // Last level > GameOver 
-                next.set(GameScene::GameOver);
-            } else {
-                // More levels => Level Complete window
-                pause.paused = true;
-                selection.index = 0;
-                spawn_level_complete_window(&mut commands);
-            }
-
-            break;
-        }
+    if is_last_level {
+        // Last level -> go straight to GameOver
+        next.set(GameScene::GameOver);
+    } else {
+        // More levels -> show "Level Complete" window
+        pause.paused = true;
+        selection.index = 0;
+        spawn_level_complete_window(&mut commands);
     }
 }
 
@@ -671,8 +689,20 @@ fn spawn_level_complete_window(commands: &mut Commands) {
         Transform::from_xyz(0.0, 70.0, 80.0),
         LevelCompleteRoot,
     ));
-    spawn_level_complete_item(commands, 0, LevelCompleteItemKind::NextLevel, "Next Level", 20.0);
-    spawn_level_complete_item(commands, 1, LevelCompleteItemKind::ExitGame, "Exit Game", -20.0);
+    spawn_level_complete_item(
+        commands,
+        0,
+        LevelCompleteItemKind::NextLevel,
+        "Next Level",
+        20.0,
+    );
+    spawn_level_complete_item(
+        commands,
+        1,
+        LevelCompleteItemKind::ExitGame,
+        "Exit Game",
+        -20.0,
+    );
 }
 
 fn spawn_level_complete_item(
@@ -691,7 +721,6 @@ fn spawn_level_complete_item(
         LevelCompleteItem { index, kind },
     ));
 }
-
 
 fn level_complete_navigation_system(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -740,14 +769,9 @@ fn level_complete_navigation_system(
                             commands.entity(e).despawn();
                         }
                         pause.paused = false;
-                        spawn_current_level(
-                            &mut commands,
-                            &grid_tf,
-                            &mut turn,
-                            &progress,
-                        );
+                        spawn_current_level(&mut commands, &grid_tf, &mut turn, &progress);
                     } else {
-                        // No more levels -> GameOver 
+                        // No more levels -> GameOver
                         pause.paused = false;
                         for e in &q_roots {
                             commands.entity(e).despawn();
@@ -773,7 +797,6 @@ fn level_complete_navigation_system(
         }
     }
 }
-
 
 fn update_level_complete_visuals(
     selection: Res<LevelCompleteSelection>,
