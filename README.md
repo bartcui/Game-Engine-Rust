@@ -25,22 +25,76 @@ The system is designed to handle core gameplay components such as player actions
 Overall, the project aims to provide a functional foundation for building small deterministic puzzle games, offering clear state transitions, reproducible turn logic, and an easy-to-extend architecture for future gameplay features.
 
 ## **3. Features**
+Here is a list of features form our game engine which we will be discussed in details:
 
-### Deterministic Turn Scheduler
+- [Grid System and Coordinate Mapping](#41-grid-system-and-coordinate-mapping)
+- [Level Loading and Validation](#42-level-loading-and-validation)
+- [Scene Management](#43-scene-management)
+- [Level Progression System](#44-level-progression-system)
+- [Save and Load System](#45-save-and-load-system)
+
+### 4.1 Grid System and Coordinate Mapping
+
+A complete grid abstraction layer was implemented to connect logical game coordinates to on-screen positions. Any game implemented on this engine can query the grid directly and does not have to compute transforms manually. This layer includes:
+
+- **GridCoord** structure that represents a tile position using (x, y) coordinates and provides utility constructors and arithmetic helpers for directional movement.
+
+- **GridTransform** that converts grid coordinates into world-space positions via uniform tile size and ensures that all sprites placed at **GridCoord** appear consistently aligned on screen. For example:
+
+  - to_world(coord) → Vec3
+  - to_grid(world_position) → GridCoord
+
+- **OccupancyIndex**, it tracks which entities occupy each grid tile and supports multiple layers and tile queries. It is used during turn resolution to detect collisions, blocking, and goal triggers. Automatically rebuilt each turn to keep ECS state consistent.
+
+### 4.2 Level Loading and Validation
+
+A flexible level loader was implemented to allow developers to define levels using simple JSON files which include all entities' spawn positions. Levels can be authored entirely in data files and JSON deserialization with error checking to verify:
+- Map bounds
+- Valid tile types
+- Duplicate entries
+- Automatic creation of Bevy entities for each object type
+
+### 4.3 Scene Management
+
+A complete scene management system was implemented using Bevy’s States. The game behaves predictably and transitions cleanly between all major screens.
+
+States we implemented:
+
+- Menu: Main menu UI, start/load game buttons
+- InGame: Active gameplay state
+- GameOver: Win screen after all levels completed
+- Pause Overlay: A UI overlay within InGame
+
+Features:
+- Automatic cleanup when switching scenes (despawns entities tied to a scene)
+- Reconstruction of all game objects when entering a level
+- Safe separation between "engine running" and "paused" states
+
+### 4.4 Level Progression System
+
+The engine now supports multi-level puzzle games and clean progression loops. A level progression structure was added to track the current level index (0 → N-1). It automatically advances upon finishing a level. When the player reaches a goal, a level complete window pops up with options:
+
+- Next Level
+- Return to Menu
+
+If the player has completed all available levels:
+
+- Displays a dedicated Game Over window
+- Provides a button to return to the menu
+
+### 4.5 Save and Load System
+
+A simple save and load system was implemented to provide basic game persistence without requiring full world serialization. The engine introduces a SaveSlot resource that records whether a save exists and which level index the player last reached. Saving is triggered from the pause window via the “Save Game” option, which simply stores the current level index. Loading is available from the main menu through the “Load Game” option, which restores the saved level and starts it from the beginning. This mechanism allows players to leave the game and later continue their progression, offering a user-friendly solution.
+
+###  Deterministic Turn Scheduler (TBD)
 Fixed pipeline (Input(config into intents) → AI Plan(state into AI intents)→ Resolve(conflict/ tie rules) → Commit → Cleanup), explicit system ordering, single-threaded commit step, seeded RNG. Deliverables: replay file (inputs + seed), golden tests that reproduce identical end states.
 
 ### Grid-Native Abstractions
 Defines a GridCoord type and provides grid↔world mapping (tile size/origin), occupancy and layers (terrain/unit/item), blocking and collision flags, neighbour iterators (4- or 8-connected), and region queries (flood-fill).
 
-### Map Loader
-Supports level formats such as JSON, TOML, or simple ASCII layouts.  Validates bounds, layers, and blocking flags, and builds grid + occupancy indices on load.
-
 ### ECS for Game Objects
 Every game object will be broken down into small components such as Position(GridCoord), Player, Blocking, Goal, Trap, and AI.  
 For example: a wall = Position + Blocking; an exit = Position + Goal; a ghost = Position + Actor + AI + Blocking. Systems follow the turn pipeline and only mutate state during the commit phase.
-
-### Scene Management
-The engine organizes the game into scenes such as Main Menu, Game In, and Game Over. Each scene has its own setup and cleanup to help with smooth transitions and predictable behaviour.
 
 ### Pathfinding Algorithm
 Uses A* as the default shortest-path solver. A* provides optimal routes like Dijkstra’s algorithm while exploring fewer nodes when guided by a heuristic. Passability and step costs are defined through a pluggable policy (a Rust trait), so different movers (player, ghost), door/key mechanics, or terrain costs can be swapped without altering the solver. The default heuristic is Manhattan distance (|dx| + |dy|), which is admissible and consistent on a 4-connected grid — fast to compute and ideal for deterministic turn logic.
@@ -70,6 +124,7 @@ After integrating our components, we will ship a small, polished chasing demo th
 
 ---
 ## **Lessons learned and concluding remarks**
+
 
 
 
