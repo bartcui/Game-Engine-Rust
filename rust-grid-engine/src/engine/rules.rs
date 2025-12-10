@@ -7,7 +7,8 @@ use bevy::prelude::*;
 pub struct ReachedGoal(pub Entity);
 #[derive(Message, Debug, Clone, Copy)]
 pub struct SteppedOnTrap(pub Entity);
-
+#[derive(Message, Debug, Clone, Copy)]
+pub struct GetCaught(pub Entity);
 /// Result of checking a move.
 #[derive(Debug, Clone, Copy)]
 pub enum MoveCheck {
@@ -42,10 +43,6 @@ impl Rules for DefaultRules {
         if !occ.at(Layer::Blockers, to).is_empty() {
             return MoveCheck::Blocked;
         }
-        // Actors block by default too
-        if !occ.at(Layer::Actors, to).is_empty() {
-            return MoveCheck::Blocked;
-        }
 
         MoveCheck::Allow
     }
@@ -62,8 +59,9 @@ impl Plugin for RulesPlugin {
             .insert_resource(ActiveRules(Box::new(DefaultRules)))
             .add_message::<ReachedGoal>()
             .add_message::<SteppedOnTrap>()
+            .add_message::<GetCaught>()
             .add_systems(
-                FixedUpdate,
+                Update,
                 (
                     crate::intents::plan_ai.in_set(TurnSystems::AiPlan),
                     crate::grid::rebuild_occupancy.in_set(TurnSystems::Resolve),
@@ -72,6 +70,7 @@ impl Plugin for RulesPlugin {
                     super::schedule::fire_on_enter_hooks.in_set(TurnSystems::Commit),
                     super::schedule::cleanup_turn.in_set(TurnSystems::Cleanup),
                 )
+                    .chain()
                     .run_if(crate::scenes::in_game_and_not_paused)
                     .run_if(super::schedule::player_has_actions),
             );

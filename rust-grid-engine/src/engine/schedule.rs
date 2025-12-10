@@ -1,7 +1,7 @@
-use crate::components::{Actor, Player};
+use crate::components::{AI, Actor, Player};
 use crate::components::{Goal, PendingIntent, Position, Trap};
 use crate::engine::TurnNumber;
-use crate::engine::rules::{ActiveRules, MoveCheck, ReachedGoal, SteppedOnTrap};
+use crate::engine::rules::{ActiveRules, GetCaught, MoveCheck, ReachedGoal, SteppedOnTrap};
 use crate::grid::occupancy::OccupancyIndex;
 use crate::intents::Intent;
 use bevy::prelude::*;
@@ -90,21 +90,40 @@ pub fn commit_changes(
 pub fn fire_on_enter_hooks(
     mut ev_goal: MessageWriter<ReachedGoal>,
     mut ev_trap: MessageWriter<SteppedOnTrap>,
-    q_actor: Query<(Entity, &Position), With<Actor>>,
+    mut ev_caught: MessageWriter<GetCaught>,
     q_goal: Query<&Position, With<Goal>>,
     q_trap: Query<&Position, With<Trap>>,
+    q_player: Query<(Entity, &Position), With<Player>>,
+    q_ai: Query<&Position, With<AI>>,
 ) {
-    for (entity, pos) in q_actor.iter() {
-        let at = pos.0;
+    if let Ok((player_ent, player_pos)) = q_player.single() {
+        let player_at = player_pos.0;
 
-        let has_goal = q_goal.iter().any(|g| g.0 == at);
-        let has_trap = q_trap.iter().any(|t| t.0 == at);
+        let has_goal = q_goal.iter().any(|g| {
+            let dx = (g.0.x - player_at.x).abs();
+            let dy = (g.0.y - player_at.y).abs();
+            dx + dy == 0
+        });
+        let has_trap = q_trap.iter().any(|t| {
+            let dx = (t.0.x - player_at.x).abs();
+            let dy = (t.0.y - player_at.y).abs();
+            dx + dy == 0
+        });
 
         if has_goal {
-            ev_goal.write(ReachedGoal(entity));
+            ev_goal.write(ReachedGoal(player_ent));
         }
         if has_trap {
-            ev_trap.write(SteppedOnTrap(entity));
+            ev_trap.write(SteppedOnTrap(player_ent));
+        }
+
+        for ai_pos in q_ai.iter() {
+            let dx = (ai_pos.0.x - player_at.x).abs();
+            let dy = (ai_pos.0.y - player_at.y).abs();
+            if dx + dy == 0 {
+                ev_caught.write(GetCaught(player_ent));
+                break;
+            }
         }
     }
 }

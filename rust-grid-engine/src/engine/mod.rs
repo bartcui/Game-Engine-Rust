@@ -35,7 +35,7 @@ impl Plugin for EnginePlugin {
                     .chain(),
             )
             .add_systems(
-                FixedUpdate,
+                Update,
                 crate::intents::gather_player_input
                     .in_set(TurnSystems::Input)
                     .run_if(crate::scenes::in_game_and_not_paused),
