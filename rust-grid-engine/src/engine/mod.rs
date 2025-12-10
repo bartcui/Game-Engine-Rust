@@ -22,9 +22,9 @@ impl Plugin for EnginePlugin {
             .insert_resource(TurnRng(StdRng::seed_from_u64(0)))
             .insert_resource(ReplayLog::default()) // input logging / replays
             .insert_resource(OccupancyIndex::default()) // grid occupancy queries
-            // Configure deterministic turn pipeline inside FixedUpdate.
+            // Configure deterministic turn pipeline inside Update.
             .configure_sets(
-                bevy::prelude::FixedUpdate,
+                Update,
                 (
                     TurnSystems::Input,
                     TurnSystems::AiPlan,
@@ -35,7 +35,7 @@ impl Plugin for EnginePlugin {
                     .chain(),
             )
             .add_systems(
-                FixedUpdate,
+                Update,
                 crate::intents::gather_player_input
                     .in_set(TurnSystems::Input)
                     .run_if(crate::scenes::in_game_and_not_paused),

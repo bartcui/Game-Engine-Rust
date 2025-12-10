@@ -1,10 +1,9 @@
 use crate::components::*;
-use crate::engine::rules::ReachedGoal;
 use crate::engine::TurnNumber;
+use crate::engine::rules::{GetCaught, ReachedGoal};
 use crate::grid::{GridCoord, GridTransform};
 use crate::intents::Intent;
 use crate::map::load_level_from_json;
-use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::sprite::Text2d;
 use bevy::text::{TextColor, TextFont};
@@ -166,7 +165,12 @@ impl Plugin for ScenePlugin {
                     // Game over input (in GameOver scene)
                     game_over_input_system.run_if(in_state(GameScene::GameOver)),
                     // freeze when paused
-                    (sync_transforms, update_turn_hud, handle_goal_reached_events)
+                    (
+                        sync_transforms,
+                        update_turn_hud,
+                        handle_goal_reached_events,
+                        handle_get_caught,
+                    )
                         .run_if(in_game_and_not_paused),
                 ),
             );
@@ -627,6 +631,17 @@ fn update_pause_menu_visuals(
         } else {
             Color::WHITE
         };
+    }
+}
+
+fn handle_get_caught(
+    mut caught_reader: MessageReader<GetCaught>,
+    mut next: ResMut<NextState<GameScene>>,
+) {
+    for _event in caught_reader.read() {
+        // On first caught event, go to GameOver
+        next.set(GameScene::GameOver);
+        break;
     }
 }
 
