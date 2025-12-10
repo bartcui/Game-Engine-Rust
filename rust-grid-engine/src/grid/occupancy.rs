@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use super::{GridCoord, Layer};
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone)]
 pub struct OccupancyIndex {
     // For each layer, a map of grid cell to entities present.
     map: HashMap<Layer, HashMap<GridCoord, SmallVec<[Entity; 4]>>>,

@@ -1,4 +1,3 @@
-use crate::components::*;
 use crate::engine::schedule::TurnSystems;
 use crate::grid::occupancy::OccupancyIndex;
 use crate::grid::{GridCoord, Layer};
@@ -18,10 +17,13 @@ pub enum MoveCheck {
 
 /// Rules that can swap out to change gameplay without touching engine code.
 pub trait Rules: Send + Sync + 'static {
-    fn can_enter(&self,
+    fn can_enter(
+        &self,
         occ: &OccupancyIndex,
         mover: Entity,
-        from: GridCoord, to: GridCoord) -> MoveCheck;
+        from: GridCoord,
+        to: GridCoord,
+    ) -> MoveCheck;
 }
 
 /// Default rules: blocks `Blocking` or closed `Door`; fires `ReachedGoal`/`SteppedOnTrap`.
@@ -63,14 +65,15 @@ impl Plugin for RulesPlugin {
             .add_systems(
                 FixedUpdate,
                 (
+                    crate::intents::plan_ai.in_set(TurnSystems::AiPlan),
                     crate::grid::rebuild_occupancy.in_set(TurnSystems::Resolve),
                     super::schedule::validate_moves.in_set(TurnSystems::Resolve),
                     super::schedule::commit_changes.in_set(TurnSystems::Commit),
                     super::schedule::fire_on_enter_hooks.in_set(TurnSystems::Commit),
                     super::schedule::cleanup_turn.in_set(TurnSystems::Cleanup),
                 )
-                    .chain()
-                    .run_if(crate::scenes::in_game_and_not_paused),
+                    .run_if(crate::scenes::in_game_and_not_paused)
+                    .run_if(super::schedule::player_has_actions),
             );
     }
 }

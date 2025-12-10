@@ -1,9 +1,9 @@
-use crate::components::Actor;
+use crate::components::{Actor, Player};
 use crate::components::{Goal, PendingIntent, Position, Trap};
-use crate::engine::rules::{ActiveRules, MoveCheck, ReachedGoal, SteppedOnTrap};
-use crate::intents::Intent;
-use crate::grid::occupancy::OccupancyIndex;
 use crate::engine::TurnNumber;
+use crate::engine::rules::{ActiveRules, MoveCheck, ReachedGoal, SteppedOnTrap};
+use crate::grid::occupancy::OccupancyIndex;
+use crate::intents::Intent;
 use bevy::prelude::*;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -54,21 +54,21 @@ pub fn validate_moves(
     }
 }
 
-pub fn commit_changes(mut q: Query<(&mut Position, Option<&mut PendingIntent>)>,
-mut turn: ResMut<TurnNumber>) {
-    let mut advanced_this_tick = false;
+pub fn commit_changes(
+    mut q: Query<(&mut Position, Option<&mut PendingIntent>, Option<&Player>)>,
+    mut turn: ResMut<TurnNumber>,
+) {
+    let mut player_moved_this_tick = false;
 
-    for (mut pos, pending_intent) in &mut q {
+    for (mut pos, pending_intent, maybe_player) in &mut q {
         if let Some(mut intent) = pending_intent {
             match intent.0 {
                 Intent::Move(dir) => {
                     pos.0 = dir.step(pos.0);
 
-                    // advance turn once for the whole tick,
-                    // regardless of how many actors move
-                    if !advanced_this_tick {
-                        turn.0 += 1;
-                        advanced_this_tick = true;
+                    // only increment turn if player moved
+                    if maybe_player.is_some() {
+                        player_moved_this_tick = true;
                     }
                 }
                 Intent::Wait => {
@@ -81,6 +81,9 @@ mut turn: ResMut<TurnNumber>) {
             // Clear intent after committing
             intent.0 = Intent::Wait;
         }
+    }
+    if player_moved_this_tick {
+        turn.0 += 1;
     }
 }
 
@@ -109,5 +112,15 @@ pub fn fire_on_enter_hooks(
 pub fn cleanup_turn(mut q: Query<&mut PendingIntent>) {
     for mut intent in &mut q {
         intent.0 = Intent::Wait;
+    }
+}
+
+pub fn player_has_actions(q_player: Query<&PendingIntent, With<Player>>) -> bool {
+    let Ok(pending) = q_player.single() else {
+        return false;
+    };
+    match pending.0 {
+        Intent::Move(_) | Intent::Interact => true,
+        Intent::Wait => false,
     }
 }

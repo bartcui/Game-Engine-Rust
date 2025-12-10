@@ -3,11 +3,10 @@ pub mod rules;
 pub mod schedule;
 
 use bevy::prelude::*;
-use rand::{rngs::StdRng, SeedableRng};
-use schedule::{TurnStep, TurnSystems};
+use rand::{SeedableRng, rngs::StdRng};
+use schedule::TurnSystems;
 
 use crate::grid::OccupancyIndex;
-use crate::intents::{gather_player_input, plan_ai};
 use replay::ReplayLog;
 
 #[derive(Resource, Debug, Clone, Copy)]
@@ -37,10 +36,8 @@ impl Plugin for EnginePlugin {
             )
             .add_systems(
                 FixedUpdate,
-                (
-                    crate::intents::gather_player_input.in_set(TurnSystems::Input),
-                    crate::intents::plan_ai.in_set(TurnSystems::AiPlan),
-                )
+                crate::intents::gather_player_input
+                    .in_set(TurnSystems::Input)
                     .run_if(crate::scenes::in_game_and_not_paused),
             )
             // Plug the default rules & resolve/commit systems.
