@@ -5,6 +5,8 @@ use crate::grid::{GridCoord, GridTransform};
 use crate::intents::Intent;
 use crate::map::load_level_from_json;
 use bevy::prelude::*;
+use bevy::image::Image;
+use bevy::asset::AssetServer;
 use bevy::sprite::Text2d;
 use bevy::text::{TextColor, TextFont};
 use std::fs;
@@ -123,6 +125,30 @@ pub struct SaveSlot {
 #[derive(Component)]
 struct GameOverRoot;
 
+//images
+#[derive(Resource)]
+pub struct SpriteAssets {
+    pub player: Handle<Image>,
+    pub wall: Handle<Image>,
+    pub goal: Handle<Image>,
+    pub trap: Handle<Image>,
+    pub door_locked: Handle<Image>,
+    pub door_unlocked: Handle<Image>,
+    pub enemy: Handle<Image>,
+}
+
+fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(SpriteAssets {
+        player:        asset_server.load("sprites/player.png"),
+        wall:          asset_server.load("sprites/goal.png"),
+        goal:          asset_server.load("sprites/goal.png"),
+        trap:          asset_server.load("sprites/goal.png"),
+        door_locked:   asset_server.load("sprites/goal.png"),
+        door_unlocked: asset_server.load("sprites/goal.png"),
+        enemy:         asset_server.load("sprites/goal.png"),
+    });
+}
+
 pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
@@ -134,7 +160,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(LevelProgress::default())
             .insert_resource(LevelCompleteSelection::default())
             .insert_resource(SaveSlot::default())
-            .add_systems(Startup, setup_camera)
+            .add_systems(Startup, (setup_camera, load_sprites))
             // Menu enter/exit
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
             .add_systems(OnExit(GameScene::Menu), teardown_menu)
@@ -157,11 +183,9 @@ impl Plugin for ScenePlugin {
                     )
                         .run_if(in_state(GameScene::InGame)),
                     // LEVEL COMPLETE MENU
-                    (
-                        level_complete_navigation_system,
-                        update_level_complete_visuals,
-                    )
-                        .run_if(in_state(GameScene::InGame)),
+                    level_complete_navigation_system,
+                    update_level_complete_visuals,
+                    
                     // Game over input (in GameOver scene)
                     game_over_input_system.run_if(in_state(GameScene::GameOver)),
                     // freeze when paused
@@ -316,8 +340,9 @@ fn setup_game(
     grid_tf: Res<GridTransform>,
     mut turn: ResMut<TurnNumber>,
     progress: Res<LevelProgress>,
+    sprite_assets: Res<SpriteAssets>,
 ) {
-    spawn_current_level(&mut commands, &grid_tf, &mut turn, &progress);
+    spawn_current_level(&mut commands, &grid_tf, &mut turn, &progress,&sprite_assets, );
 }
 
 fn spawn_current_level(
@@ -325,6 +350,7 @@ fn spawn_current_level(
     grid_tf: &GridTransform,
     turn: &mut TurnNumber,
     progress: &LevelProgress,
+    sprite_assets: &SpriteAssets,
 ) {
     // Reset per-run state
     turn.0 = 0;
@@ -348,7 +374,7 @@ fn spawn_current_level(
         Position(p),
         PendingIntent(Intent::Wait),
         Sprite {
-            color: Color::srgb(0.2, 0.6, 1.0),
+            image: sprite_assets.player.clone(),
             custom_size: Some(Vec2::splat(grid_tf.tile_size)),
             ..Default::default()
         },
@@ -375,7 +401,7 @@ fn spawn_current_level(
             Goal,
             Position(g),
             Sprite {
-                color: Color::srgb(0.1, 0.9, 0.1),
+                image: sprite_assets.goal.clone(),
                 custom_size: Some(Vec2::splat(grid_tf.tile_size)),
                 ..Default::default()
             },
@@ -749,44 +775,57 @@ fn level_complete_navigation_system(
     q_world: Query<Entity, Or<(With<Position>, With<Actor>, With<TurnHudText>)>>,
     grid_tf: Res<GridTransform>,
     mut turn: ResMut<TurnNumber>,
+    sprite_assets: Res<SpriteAssets>,
 ) {
     // Only run if the window is visible
     if q_roots.is_empty() {
         return;
     }
 
+    // Find the maximum index to clamp selection
     let max_index = q_items.iter().map(|c| c.index).max().unwrap_or(0);
 
-    // Navigate up/down
+    // Navigation
     if keyboard.just_pressed(KeyCode::ArrowUp) || keyboard.just_pressed(KeyCode::KeyW) {
         if selection.index > 0 {
             selection.index -= 1;
         }
     }
+
     if keyboard.just_pressed(KeyCode::ArrowDown) || keyboard.just_pressed(KeyCode::KeyS) {
         if selection.index < max_index {
             selection.index += 1;
         }
     }
 
-    // Activate
+    // Activate current selection
     if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::NumpadEnter) {
         if let Some(item) = q_items.iter().find(|c| c.index == selection.index) {
             match item.kind {
                 LevelCompleteItemKind::NextLevel => {
                     if progress.current + 1 < progress.level_paths.len() {
+                        // Advance to the next level
                         progress.current += 1;
 
+                        // Clear current game world + the level complete window
                         for e in &q_world {
                             commands.entity(e).despawn();
                         }
                         for e in &q_roots {
                             commands.entity(e).despawn();
                         }
+
+                        // Unpause and spawn the next level directly
                         pause.paused = false;
-                        spawn_current_level(&mut commands, &grid_tf, &mut turn, &progress);
+                        spawn_current_level(
+                            &mut commands,
+                            &grid_tf,
+                            &mut turn,
+                            &progress,
+                            &sprite_assets,
+                        );
                     } else {
-                        // No more levels -> GameOver
+                        // No more levels: go to GameOver scene
                         pause.paused = false;
                         for e in &q_roots {
                             commands.entity(e).despawn();
@@ -795,10 +834,10 @@ fn level_complete_navigation_system(
                     }
                 }
                 LevelCompleteItemKind::ExitGame => {
-                    // main menu
+                    // Back to main menu
                     pause.paused = false;
 
-                    // Clear world
+                    // Clear world + window
                     for e in &q_world {
                         commands.entity(e).despawn();
                     }
@@ -812,6 +851,7 @@ fn level_complete_navigation_system(
         }
     }
 }
+
 
 fn update_level_complete_visuals(
     selection: Res<LevelCompleteSelection>,
