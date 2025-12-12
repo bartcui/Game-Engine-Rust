@@ -23,6 +23,9 @@ pub enum GameScene {
 #[derive(Component)]
 pub struct TurnHudText;
 
+#[derive(Component)]
+pub struct LevelHudText;
+
 // MAIN MENU
 
 #[derive(Component)]
@@ -192,6 +195,7 @@ impl Plugin for ScenePlugin {
                     (
                         sync_transforms,
                         update_turn_hud,
+                        update_level_hud,
                         handle_goal_reached_events,
                         handle_get_caught,
                     )
@@ -471,7 +475,17 @@ pub fn sync_transforms(
     }
 }
 
-fn setup_hud(mut commands: Commands) {
+fn setup_hud(mut commands: Commands, progress: Res<LevelProgress>) {
+    // Level name
+    let level_name = current_level_label(&progress);
+    commands.spawn((
+        Text2d::new(format!("Level: {}", level_name)),
+        TextFont::from_font_size(24.0),
+        TextColor(Color::WHITE),
+        Transform::from_xyz(-380.0, 230.0, 10.0),
+        LevelHudText,
+    ));    
+    // Turn counter
     commands.spawn((
         Text2d::new("Turn: 0"),
         TextFont::from_font_size(24.0),
@@ -479,6 +493,19 @@ fn setup_hud(mut commands: Commands) {
         Transform::from_xyz(-380.0, 260.0, 10.0),
         TurnHudText,
     ));
+}
+
+fn current_level_label(progress: &LevelProgress) -> String {
+    let path = progress
+        .level_paths
+        .get(progress.current)
+        .map(|s| s.as_str())
+        .unwrap_or("unknown");
+
+    let filename = path.rsplit('/').next().unwrap_or(path);          
+    let filename = filename.rsplit('\\').next().unwrap_or(filename); 
+
+    filename.strip_suffix(".json").unwrap_or(filename).to_string()
 }
 
 fn update_turn_hud(turn: Res<TurnNumber>, mut q: Query<&mut Text2d, With<TurnHudText>>) {
@@ -492,14 +519,30 @@ fn update_turn_hud(turn: Res<TurnNumber>, mut q: Query<&mut Text2d, With<TurnHud
     }
 }
 
+fn update_level_hud(
+    progress: Res<LevelProgress>,
+    mut q: Query<&mut Text2d, With<LevelHudText>>,
+) {
+    if !progress.is_changed() {
+        return;
+    }
+
+    let label = current_level_label(&progress);
+    for mut text in &mut q {
+        text.clear();
+        text.push_str(&format!("Level: {}", label));
+    }
+}
+
 fn teardown_game(
     mut commands: Commands,
     mut pause: ResMut<PauseState>,
-    q_world: Query<Entity, Or<(With<Position>, With<Actor>, With<TurnHudText>)>>,
+    q_world: Query<Entity, Or<(With<Position>, With<Actor>, With<TurnHudText>, With<LevelHudText>)>>,
     q_pause_ui: Query<Entity, With<PauseMenuRoot>>,
     q_level_complete_ui: Query<Entity, With<LevelCompleteRoot>>,
 ) {
     pause.paused = false;
+
     for e in &q_world {
         commands.entity(e).despawn();
     }
@@ -772,7 +815,7 @@ fn level_complete_navigation_system(
     mut commands: Commands,
     q_items: Query<&LevelCompleteItem>,
     q_roots: Query<Entity, With<LevelCompleteRoot>>,
-    q_world: Query<Entity, Or<(With<Position>, With<Actor>, With<TurnHudText>)>>,
+    q_world: Query<Entity, Or<(With<Position>, With<Actor>)>>,
     grid_tf: Res<GridTransform>,
     mut turn: ResMut<TurnNumber>,
     sprite_assets: Res<SpriteAssets>,
