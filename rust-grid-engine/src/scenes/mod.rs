@@ -1,12 +1,15 @@
 use crate::components::*;
 use crate::engine::TurnNumber;
+use crate::engine::replay::{
+    ActiveReplay, reset_replay, save_replay_on_game_over, start_replay_mode, stop_replay_mode,
+};
 use crate::engine::rules::{GetCaught, ReachedGoal};
 use crate::grid::{GridCoord, GridTransform};
 use crate::intents::Intent;
 use crate::map::load_level_from_json;
-use bevy::prelude::*;
-use bevy::image::Image;
 use bevy::asset::AssetServer;
+use bevy::image::Image;
+use bevy::prelude::*;
 use bevy::sprite::Text2d;
 use bevy::text::{TextColor, TextFont};
 use std::fs;
@@ -17,6 +20,7 @@ pub enum GameScene {
     #[default]
     Menu,
     InGame,
+    Replay,
     GameOver,
 }
 
@@ -139,13 +143,13 @@ pub struct SpriteAssets {
 
 fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(SpriteAssets {
-        player:        asset_server.load("sprites/player.png"),
-        wall:          asset_server.load("sprites/goal.png"),
-        goal:          asset_server.load("sprites/goal.png"),
-        trap:          asset_server.load("sprites/goal.png"),
-        door_locked:   asset_server.load("sprites/goal.png"),
+        player: asset_server.load("sprites/player.png"),
+        wall: asset_server.load("sprites/goal.png"),
+        goal: asset_server.load("sprites/goal.png"),
+        trap: asset_server.load("sprites/goal.png"),
+        door_locked: asset_server.load("sprites/goal.png"),
         door_unlocked: asset_server.load("sprites/goal.png"),
-        enemy:         asset_server.load("sprites/goal.png"),
+        enemy: asset_server.load("sprites/goal.png"),
     });
 }
 
@@ -165,8 +169,27 @@ impl Plugin for ScenePlugin {
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
             .add_systems(OnExit(GameScene::Menu), teardown_menu)
             // InGame enter/exit
-            .add_systems(OnEnter(GameScene::InGame), (setup_game, setup_hud))
-            .add_systems(OnExit(GameScene::InGame), teardown_game)
+            .add_systems(
+                OnEnter(GameScene::InGame),
+                (stop_replay_mode, reset_replay, setup_game, setup_hud),
+            )
+            .add_systems(
+                OnExit(GameScene::InGame),
+                (teardown_game, save_replay_on_game_over),
+            )
+            .add_systems(
+                OnEnter(GameScene::Replay),
+                (
+                    setup_game,
+                    setup_hud,
+                    start_replay_mode,
+                    setup_replay_overlay,
+                ),
+            )
+            .add_systems(
+                OnExit(GameScene::Replay),
+                (teardown_game, teardown_replay_overlay, stop_replay_mode),
+            )
             // GameOver
             .add_systems(OnEnter(GameScene::GameOver), setup_game_over)
             .add_systems(OnExit(GameScene::GameOver), teardown_game_over)
@@ -185,9 +208,11 @@ impl Plugin for ScenePlugin {
                     // LEVEL COMPLETE MENU
                     level_complete_navigation_system,
                     update_level_complete_visuals,
-                    
                     // Game over input (in GameOver scene)
                     game_over_input_system.run_if(in_state(GameScene::GameOver)),
+                    // Replay overlay + finishing logic
+                    (update_replay_overlay_fade, check_replay_finished)
+                        .run_if(in_state(GameScene::Replay)),
                     // freeze when paused
                     (
                         sync_transforms,
@@ -202,11 +227,11 @@ impl Plugin for ScenePlugin {
 }
 
 pub fn is_in_game_scene(state: Res<State<GameScene>>) -> bool {
-    *state.get() == GameScene::InGame
+    matches!(*state.get(), GameScene::InGame | GameScene::Replay)
 }
 
 pub fn in_game_and_not_paused(state: Res<State<GameScene>>, pause: Res<PauseState>) -> bool {
-    *state.get() == GameScene::InGame && !pause.paused
+    matches!(*state.get(), GameScene::InGame | GameScene::Replay) && !pause.paused
 }
 
 fn setup_camera(mut commands: Commands) {
@@ -342,7 +367,13 @@ fn setup_game(
     progress: Res<LevelProgress>,
     sprite_assets: Res<SpriteAssets>,
 ) {
-    spawn_current_level(&mut commands, &grid_tf, &mut turn, &progress,&sprite_assets, );
+    spawn_current_level(
+        &mut commands,
+        &grid_tf,
+        &mut turn,
+        &progress,
+        &sprite_assets,
+    );
 }
 
 fn spawn_current_level(
@@ -663,10 +694,20 @@ fn update_pause_menu_visuals(
 fn handle_get_caught(
     mut caught_reader: MessageReader<GetCaught>,
     mut next: ResMut<NextState<GameScene>>,
+    state: Res<State<GameScene>>,
 ) {
     for _event in caught_reader.read() {
-        // On first caught event, go to GameOver
-        next.set(GameScene::GameOver);
+        match *state.get() {
+            GameScene::InGame => {
+                // Player got caught -> start ghost playback
+                next.set(GameScene::Replay);
+            }
+            GameScene::Replay => {
+                // Ghost run reaches the same death -> now show GameOver screen
+                next.set(GameScene::GameOver);
+            }
+            _ => {}
+        }
         break;
     }
 }
@@ -852,7 +893,6 @@ fn level_complete_navigation_system(
     }
 }
 
-
 fn update_level_complete_visuals(
     selection: Res<LevelCompleteSelection>,
     mut q: Query<(&LevelCompleteItem, &mut TextColor)>,
@@ -905,5 +945,79 @@ fn game_over_input_system(
 ) {
     if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::NumpadEnter) {
         next.set(GameScene::Menu);
+    }
+}
+
+// ---------- Replay playback overlay ----------
+
+#[derive(Component)]
+struct ReplayOverlayRoot;
+
+#[derive(Component)]
+struct ReplayOverlayFade {
+    timer: Timer,
+}
+
+fn setup_replay_overlay(mut commands: Commands) {
+    // Dark fade overlay
+    commands.spawn((
+        Sprite {
+            // Semi-transparent black; matches your other windows in size.
+            color: Color::srgba(0.0, 0.0, 0.0, 0.8),
+            custom_size: Some(Vec2::new(360.0, 220.0)),
+            ..Default::default()
+        },
+        Transform::from_xyz(0.0, 0.0, 90.0),
+        ReplayOverlayRoot,
+        ReplayOverlayFade {
+            // Fade out over ~0.6s
+            timer: Timer::from_seconds(0.6, TimerMode::Once),
+        },
+    ));
+
+    // Label text
+    commands.spawn((
+        Text2d::new("Replaying your last run..."),
+        TextFont::from_font_size(24.0),
+        TextColor(Color::WHITE),
+        Transform::from_xyz(0.0, 10.0, 100.0),
+        ReplayOverlayRoot,
+    ));
+}
+
+fn teardown_replay_overlay(mut commands: Commands, q: Query<Entity, With<ReplayOverlayRoot>>) {
+    for e in &q {
+        commands.entity(e).despawn();
+    }
+}
+
+fn update_replay_overlay_fade(
+    time: Res<Time>,
+    mut q: Query<(&mut Sprite, &mut ReplayOverlayFade), With<ReplayOverlayRoot>>,
+) {
+    for (mut sprite, mut fade) in &mut q {
+        fade.timer.tick(time.delta());
+
+        let t = 1.0 - fade.timer.fraction();
+        let alpha = 0.8 * t.clamp(0.0, 1.0);
+        sprite.color.set_alpha(alpha);
+    }
+}
+
+fn check_replay_finished(
+    active: Option<Res<ActiveReplay>>,
+    mut next: ResMut<NextState<GameScene>>,
+) {
+    let Some(active) = active else {
+        return;
+    };
+
+    let Some(replay) = active.replay.as_ref() else {
+        return;
+    };
+
+    // If we've consumed all input events, end the ghost run.
+    if active.cursor >= replay.inputs.len() {
+        next.set(GameScene::GameOver);
     }
 }

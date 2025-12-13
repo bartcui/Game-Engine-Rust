@@ -1,6 +1,7 @@
 use crate::components::{AI, Actor, Player};
 use crate::components::{Goal, PendingIntent, Position, Trap};
 use crate::engine::TurnNumber;
+use crate::engine::replay::ActiveReplay;
 use crate::engine::rules::{ActiveRules, GetCaught, MoveCheck, ReachedGoal, SteppedOnTrap};
 use crate::grid::occupancy::OccupancyIndex;
 use crate::intents::Intent;
@@ -55,34 +56,20 @@ pub fn validate_moves(
 }
 
 pub fn commit_changes(
-    mut q: ParamSet<(
-        // p0: all actors we want to move
-        Query<(&mut Position, Option<&mut PendingIntent>, Option<&Player>)>,
-        // p1: just the player's PendingIntent after validation
-        Query<&PendingIntent, With<Player>>,
-    )>,
+    mut q: Query<(&mut Position, Option<&mut PendingIntent>, Option<&Player>)>,
     mut turn: ResMut<TurnNumber>,
 ) {
-    let player_move_validated = if let Ok(pending) = q.p1().single() {
-        matches!(pending.0, Intent::Move(_))
-    } else {
-        false
-    };
-
     let mut player_moved_this_tick = false;
 
-    for (mut pos, pending_intent, maybe_player) in &mut q.p0() {
+    for (mut pos, pending_intent, maybe_player) in &mut q {
         if let Some(mut intent) = pending_intent {
             match intent.0 {
                 Intent::Move(dir) => {
-                    // only commit changes if player moved
-                    if player_move_validated {
-                        pos.0 = dir.step(pos.0);
+                    pos.0 = dir.step(pos.0);
 
-                        // Still only count the turn as advanced if the player actually moved.
-                        if maybe_player.is_some() {
-                            player_moved_this_tick = true;
-                        }
+                    // Still only count the turn as advanced if the player actually moved.
+                    if maybe_player.is_some() {
+                        player_moved_this_tick = true;
                     }
                 }
                 Intent::Wait => {

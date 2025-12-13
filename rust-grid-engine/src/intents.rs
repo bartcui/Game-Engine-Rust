@@ -16,7 +16,7 @@ pub enum Intent {
     Interact,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Message, Debug, Clone, Serialize, Deserialize)]
 pub enum InputEvent {
     Move(Dir),
     Wait,
@@ -55,11 +55,7 @@ pub fn gather_player_input(
         }
 
         // record input with current turn number
-        let current_turn = turn.0;
-        replay.0.push(RecordedInput {
-            turn: current_turn,
-            input: event,
-        });
+        replay.record(turn.0, event);
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::engine::schedule::TurnSystems;
 use crate::grid::occupancy::OccupancyIndex;
 use crate::grid::{GridCoord, Layer};
+use crate::intents::InputEvent;
 use bevy::prelude::*;
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -60,6 +61,7 @@ impl Plugin for RulesPlugin {
             .add_message::<ReachedGoal>()
             .add_message::<SteppedOnTrap>()
             .add_message::<GetCaught>()
+            .add_message::<InputEvent>()
             .add_systems(
                 Update,
                 (
