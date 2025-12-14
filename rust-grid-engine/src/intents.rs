@@ -153,8 +153,7 @@ fn random_legal_step(
             continue;
         }
 
-        let blocked =
-            !occ.at(Layer::Blockers, next).is_empty() || !occ.at(Layer::Actors, next).is_empty();
+        let blocked = !occ.at(Layer::Blockers, next).is_empty();
         if !blocked {
             legal.push(d);
         }

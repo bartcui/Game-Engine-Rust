@@ -1,10 +1,10 @@
 {
-  "seed": 2934126125653252213,
+  "seed": 16304806337549994210,
   "inputs": [
     {
       "turn": 0,
       "input": {
-        "Move": "Right"
+        "Move": "Up"
       }
     },
     {
@@ -40,37 +40,37 @@
     {
       "turn": 6,
       "input": {
-        "Move": "Down"
+        "Move": "Right"
       }
     },
     {
       "turn": 7,
       "input": {
-        "Move": "Down"
+        "Move": "Right"
       }
     },
     {
       "turn": 8,
       "input": {
-        "Move": "Down"
+        "Move": "Right"
       }
     },
     {
       "turn": 9,
       "input": {
-        "Move": "Left"
+        "Move": "Right"
       }
     },
     {
       "turn": 10,
       "input": {
-        "Move": "Left"
+        "Move": "Up"
       }
     },
     {
       "turn": 11,
       "input": {
-        "Move": "Left"
+        "Move": "Up"
       }
     },
     {
@@ -82,31 +82,31 @@
     {
       "turn": 13,
       "input": {
-        "Move": "Left"
+        "Move": "Down"
       }
     },
     {
       "turn": 14,
       "input": {
-        "Move": "Left"
+        "Move": "Down"
       }
     },
     {
       "turn": 15,
       "input": {
-        "Move": "Left"
+        "Move": "Down"
       }
     },
     {
       "turn": 16,
       "input": {
-        "Move": "Left"
+        "Move": "Down"
       }
     },
     {
       "turn": 17,
       "input": {
-        "Move": "Left"
+        "Move": "Down"
       }
     },
     {
@@ -118,31 +118,37 @@
     {
       "turn": 19,
       "input": {
-        "Move": "Down"
+        "Move": "Left"
       }
     },
     {
       "turn": 20,
       "input": {
-        "Move": "Down"
+        "Move": "Left"
       }
     },
     {
       "turn": 21,
       "input": {
-        "Move": "Down"
+        "Move": "Left"
       }
     },
     {
       "turn": 22,
       "input": {
-        "Move": "Right"
+        "Move": "Left"
       }
     },
     {
       "turn": 23,
       "input": {
-        "Move": "Right"
+        "Move": "Left"
+      }
+    },
+    {
+      "turn": 24,
+      "input": {
+        "Move": "Up"
       }
     },
     {
@@ -160,419 +166,23 @@
     {
       "turn": 26,
       "input": {
-        "Move": "Right"
+        "Move": "Up"
       }
     },
     {
       "turn": 27,
       "input": {
-        "Move": "Right"
+        "Move": "Up"
       }
     },
     {
       "turn": 28,
       "input": {
-        "Move": "Right"
+        "Move": "Down"
       }
     },
     {
       "turn": 29,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 30,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 31,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 32,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 33,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 34,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 35,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 36,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 37,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 38,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 39,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 40,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 41,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 42,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 43,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 44,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 45,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 46,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 47,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 48,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 49,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 50,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 51,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 52,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 53,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 54,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 55,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 56,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 57,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 58,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 59,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 60,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 61,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 62,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 63,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 64,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 65,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 66,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 67,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 68,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 69,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 70,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 71,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 72,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 73,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 74,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 75,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 76,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 77,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 78,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 79,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 80,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 81,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 82,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 83,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 84,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 85,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 86,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 87,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 88,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 89,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 90,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 91,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 92,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 93,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 94,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 95,
       "input": {
         "Move": "Down"
       }

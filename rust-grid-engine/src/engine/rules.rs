@@ -41,7 +41,7 @@ impl Rules for DefaultRules {
         to: GridCoord,
     ) -> MoveCheck {
         // Blockers block
-        if !occ.at(Layer::Blockers, to).is_empty() || !occ.at(Layer::Actors, to).is_empty() {
+        if !occ.at(Layer::Blockers, to).is_empty() {
             return MoveCheck::Blocked;
         }
 
