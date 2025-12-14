@@ -1,6 +1,6 @@
 use crate::components::{AI, PendingIntent, Player, Position};
 use crate::engine::TurnNumber;
-use crate::engine::replay::{RecordedInput, ReplayLog};
+use crate::engine::replay::{ReplayLog};
 use crate::grid::GridCoord;
 use crate::grid::occupancy::OccupancyIndex;
 use crate::grid::{Dir, Layer};

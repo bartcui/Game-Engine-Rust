@@ -1,5 +1,5 @@
 use crate::grid::neighbours_4 as neigh;
-use crate::grid::{Dir, GridCoord};
+use crate::grid::{GridCoord};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::Arc;

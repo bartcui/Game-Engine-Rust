@@ -16,6 +16,7 @@ use bevy::sprite::Text2d;
 use bevy::text::{TextColor, TextFont};
 use std::fs;
 use std::process;
+use bevy::prelude::ClearColor;
 
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum GameScene {
@@ -178,6 +179,7 @@ pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameScene>()
+            .insert_resource(ClearColor(Color::srgb(0.0, 0.5, 0.2)))
             .insert_resource(GridTransform::default())
             .insert_resource(PauseState::default())
             .insert_resource(MainMenuSelection::default())
@@ -393,6 +395,14 @@ fn setup_game(
     sprite_assets: Res<SpriteAssets>,
     mut current_name: ResMut<CurrentLevelName>,
 ) {
+    commands.spawn((
+        Sprite {
+            color: Color::srgb(0.0, 0.5, 0.2), //in game background colour
+            custom_size: Some(Vec2::new(5000.0, 5000.0)),
+            ..Default::default()
+        },
+        Transform::from_xyz(0.0, 0.0, -1000.0),
+    ));
     spawn_current_level(
         &mut commands,
         &grid_tf,
