@@ -49,15 +49,15 @@ Because the engine is intentionally small and domain-specific, learners can unde
 
 Here is a list of features form our game engine which we will be discussed in details:
 
-- [Grid System and Coordinate Mapping](#41-grid-system-and-coordinate-mapping)
-- [Level Loading and Validation](#42-level-loading-and-validation)
-- [Scene Management](#43-scene-management)
-- [Level Progression System](#44-level-progression-system)
-- [Save and Load System](#45-save-and-load-system)
-- [Deterministic Turn Scheduler](#46-deterministic-turn-scheduler)
-- [ECS for Game Objects](#47-ecs-for-game-objects)
-- [Pathfinding Algorithm](#48-pathfinding-algorithm)
-- [Replay System for Deterministic Debugging](#49-replay-system-for-deterministic-debugging)
+- [Grid System and Coordinate Mapping](#31-grid-system-and-coordinate-mapping)
+- [Level Loading and Validation](#32-level-loading-and-validation)
+- [Scene Management](#33-scene-management)
+- [Level Progression System](#34-level-progression-system)
+- [Save and Load System](#35-save-and-load-system)
+- [Deterministic Turn Scheduler](#36-deterministic-turn-scheduler)
+- [ECS for Game Objects](#37-ecs-for-game-objects)
+- [Pathfinding Algorithm](#38-pathfinding-algorithm)
+- [Replay System for Deterministic Debugging](#39-replay-system-for-deterministic-debugging)
 
 ### 3.1 Grid System and Coordinate Mapping
 
@@ -443,6 +443,7 @@ On the presentation side, Bart set up the 2D rendering layer, including grid-ali
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline, we reduced the difficulty of debugging gameplay behaviour. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
+
 
 
 
