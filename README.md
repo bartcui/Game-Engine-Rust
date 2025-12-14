@@ -206,7 +206,50 @@ Each level file defines:
 
 - Map dimensions
 - Tile layout
-- Initial spawn positions for entities (player, enemies, walls, goals, etc.)
+- Initial spawn positions for entities
+
+Example level template files are given for developers to build on top of them:
+
+```json
+{
+  "width": 10,
+  "height": 8,
+  "player_start": { "x": 1, "y": 1 },
+  "walls": [
+    { "x": 0, "y": 0 },
+    { "x": 1, "y": 0 },
+    { "x": 2, "y": 0 },
+    { "x": 3, "y": 0 },
+    { "x": 2, "y": 1 },
+    { "x": -1, "y": 0 },
+    { "x": -2, "y": 0 }
+  ],
+  "goals": [
+    { "x": 8, "y": 6 }
+  ],
+  "enemies": [
+    { "x": 8, "y": 5, "kind": "ghost" }
+  ]
+}
+```
+
+After creating a new level, add it to the LevelProgress in scenes/mod.rs
+
+```rust
+impl Default for LevelProgress {
+    fn default() -> Self {
+        Self {
+            level_paths: vec![
+                "assets/levels/level1.json".to_string(),
+                "assets/levels/level2.json".to_string(),
+                "assets/levels/level3.json".to_string(),
+                // add more here later
+            ],
+            current: 0,
+        }
+    }
+}
+```
 
 The engine automatically:
 
@@ -340,5 +383,6 @@ After integrating the components, the team shipped a small, polished chasing dem
 ## **Lessons learned and concluding remarks**
 
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline (Input → AI Planning → Resolve → Commit → Cleanup), we significantly reduced the difficulty of debugging gameplay behavior. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
+
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
