@@ -8,6 +8,18 @@ use rand::{RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::fs;
 
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct ReplayConfig {
+    /// Set to 0.0 in tests to inject every update deterministically.
+    pub tick_seconds: f32,
+}
+
+impl Default for ReplayConfig {
+    fn default() -> Self {
+        Self { tick_seconds: 0.25 }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Replay {
     pub seed: u64,
@@ -120,6 +132,7 @@ pub fn feed_replay_inputs_system(
     mut q_player: Query<&mut PendingIntent, With<Player>>,
     turn: Res<TurnNumber>,
     time: Res<Time>,
+    cfg: Res<ReplayConfig>,
     mut tick_timer: ResMut<ReplayTickTimer>,
 ) {
     let current_turn = turn.0;
@@ -128,9 +141,11 @@ pub fn feed_replay_inputs_system(
         return;
     };
     // Tick the timer; only inject input when a tick completes.
-    tick_timer.0.tick(time.delta());
-    if !tick_timer.0.just_finished() {
-        return;
+    if cfg.tick_seconds > 0.0 {
+        tick_timer.0.tick(time.delta());
+        if !tick_timer.0.just_finished() {
+            return;
+        }
     }
 
     let Ok(mut pending) = q_player.single_mut() else {

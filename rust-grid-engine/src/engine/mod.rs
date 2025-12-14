@@ -9,7 +9,8 @@ use rand::{SeedableRng, rngs::StdRng};
 use schedule::TurnSystems;
 
 use crate::engine::replay::{
-    ActiveReplay, ReplayLog, ReplayTickTimer, feed_replay_inputs_system, is_replay_active,
+    ActiveReplay, ReplayConfig, ReplayLog, ReplayTickTimer, feed_replay_inputs_system,
+    is_replay_active,
 };
 use crate::grid::OccupancyIndex;
 
@@ -27,6 +28,7 @@ impl Plugin for EnginePlugin {
     fn build(&self, app: &mut App) {
         let seed: u64 = OsRng.next_u64();
         app.init_resource::<TurnNumber>()
+            .init_resource::<ReplayConfig>()
             .init_resource::<ActiveReplay>()
             .init_resource::<ReplayTickTimer>()
             .insert_resource(RunSeed(seed))

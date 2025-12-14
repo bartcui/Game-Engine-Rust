@@ -1,15 +1,7 @@
 use bevy::prelude::*;
 
-mod components;
-mod engine;
-mod grid;
-mod intents;
-mod map;
-mod pathfinding;
-mod scenes;
-
-use engine::EnginePlugin;
-use scenes::ScenePlugin;
+use rust_grid_engine::engine::EnginePlugin;
+use rust_grid_engine::scenes::ScenePlugin;
 
 fn main() {
     App::new()
