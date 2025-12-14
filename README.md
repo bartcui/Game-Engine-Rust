@@ -37,6 +37,10 @@ Here is a list of features form our game engine which we will be discussed in de
 - [Scene Management](#43-scene-management)
 - [Level Progression System](#44-level-progression-system)
 - [Save and Load System](#45-save-and-load-system)
+- [Deterministic Turn Scheduler](#46-deterministic-turn-scheduler)
+- [ECS for Game Objects](#47-ecs-for-game-objects)
+- [Pathfinding Algorithm](#48-pathfinding-algorithm)
+- [Replay System for Deterministic Debugging](#49-replay-system-for-deterministic-debugging)
 
 ### 4.1 Grid System and Coordinate Mapping
 
@@ -178,32 +182,33 @@ This section explains how a user or developer can use the main features provided
 
 ### 4.1 Game Control and Key Binding
 
-The default control scheme uses keyboard input mapped to grid-based movement:
+The default control scheme uses keyboard input mapped to grid-based movement. During gameplay, the player can move using either W/A/S/D or the arrow keys, with each keypress translating into a grid step:
 
-- **W**: Move up
-- **S**: Move down
-- **A**: Move left
-- **D**: Move right
+- **W / ↑**: Move up
+- **S / ↓**: Move down
+- **A / ←**: Move left
+- **D / →**: Move right
 
-Player input is captured each turn and translated into intent components rather than directly mutating game state. This allows input handling to remain deterministic and easily replayable.
+In addition, pressing **Esc** toggles the Pause Menu during gameplay.
 
-Developers can:
+For menu-style UI (Main Menu, Pause Menu, and level completion pop-up windows), navigation follows a consistent pattern:
 
-- Remap keys by modifying the input system.
-- Add new actions (e.g., interact, wait, special ability) by introducing new intent types and handling them in the resolve/commit phases of the turn pipeline.
+- **↑ / ↓**: Move selection up or down
+- **Enter**: Confirm the highlighted option
+
+Player input is captured each turn and translated into intent components rather than directly mutating game state. This keeps input handling deterministic and makes replay/ghost runs straightforward, since the game can re-simulate from logged intents rather than relying on real-time input timing.
+
+Developers can remap keys or add new actions by modifying the input systems for gameplay in **gather_player_input** function in **intents.rs** or UI navigation in **menu_input_system** function in **scenes/mod.rs**.
 
 ---
 
 ### 4.2 Creating and Loading Levels
 
-For basic usage, developers only need to create **JSON level files** and place them under:
-
-```json
-assets/levels/
-```
+For basic usage, developers only need to create **JSON level files** and place them under **assets/levels/**
 
 Each level file defines:
 
+- Level name
 - Map dimensions
 - Tile layout
 - Initial spawn positions for entities
@@ -212,28 +217,47 @@ Example level template files are given for developers to build on top of them:
 
 ```json
 {
-  "width": 10,
+  "name": "Ghost2",
+  "width": 12,
   "height": 8,
+
+  "seed": 123456,
+
   "player_start": { "x": 1, "y": 1 },
+
   "walls": [
-    { "x": 0, "y": 0 },
-    { "x": 1, "y": 0 },
-    { "x": 2, "y": 0 },
-    { "x": 3, "y": 0 },
-    { "x": 2, "y": 1 },
-    { "x": -1, "y": 0 },
-    { "x": -2, "y": 0 }
+    { "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 2, "y": 0 },
+    { "x": 3, "y": 0 }, { "x": 4, "y": 0 }, { "x": 5, "y": 0 },
+
+    { "x": 0, "y": 1 }, { "x": 0, "y": 2 }, { "x": 0, "y": 3 },
+    { "x": 0, "y": 4 }, { "x": 0, "y": 5 },
+
+    { "x": 11, "y": 1 }, { "x": 11, "y": 2 }, { "x": 11, "y": 3 },
+    { "x": 11, "y": 4 }, { "x": 11, "y": 5 }
   ],
+
   "goals": [
-    { "x": 8, "y": 6 }
+    { "x": 10, "y": 6 }
   ],
+
+  "traps": [
+    { "x": 4, "y": 3 },
+    { "x": 7, "y": 4 }
+  ],
+
+  "doors": [
+    { "x": 5, "y": 3, "locked": true,  "key_id": 1 },
+    { "x": 6, "y": 3, "locked": true, "key_id": 0 }
+  ],
+
   "enemies": [
-    { "x": 8, "y": 5, "kind": "ghost" }
+    { "x": 8, "y": 5, "kind": "ghost" },
+    { "x": 3, "y": 5, "kind": "ghost" }
   ]
 }
 ```
 
-After creating a new level, add it to the LevelProgress in scenes/mod.rs
+After creating a new level, add it to the LevelProgress in **scenes/mod.rs**
 
 ```rust
 impl Default for LevelProgress {
@@ -251,15 +275,37 @@ impl Default for LevelProgress {
 }
 ```
 
-The engine automatically:
+### 4.3 Theme Colour Change
 
-- Parses the JSON file
-- Validates level correctness
-- Spawns the appropriate Bevy entities with predefined components
+Developers can change the InGame background colour based on the mood they want to set. The colour setting is coded in **setup_game** function in **scenes/mod.rs**:
 
-### 4.3 Save and Load Usage
-
-The save and load system is fully integrated into the engine workflow and requires no additional setup.
+```rust
+fn setup_game(
+    mut commands: Commands,
+    grid_tf: Res<GridTransform>,
+    mut turn: ResMut<TurnNumber>,
+    progress: Res<LevelProgress>,
+    sprite_assets: Res<SpriteAssets>,
+    mut current_name: ResMut<CurrentLevelName>,
+) {
+    commands.spawn((
+        Sprite {
+            color: Color::srgb(0.0, 0.5, 0.2), //in game background colour
+            custom_size: Some(Vec2::new(5000.0, 5000.0)),
+            ..Default::default()
+        },
+        Transform::from_xyz(0.0, 0.0, -1000.0),
+    ));
+    spawn_current_level(
+        &mut commands,
+        &grid_tf,
+        &mut turn,
+        &progress,
+        &sprite_assets,
+        &mut current_name,
+    );
+}
+```
 
 ### 4.4 Deterministic Turn Pipeline Integration
 
@@ -267,9 +313,9 @@ All gameplay logic runs through a fixed deterministic pipeline:
 
 Input → AI Planning → Resolve → Commit → Cleanup
 
-For basic games, developers do not need to interact with this pipeline directly.
+For **basic games**, developers do not need to interact with this pipeline directly.
 
-For advanced usage, developers can:
+For **advanced usage**, developers can:
 
 - Insert custom systems into a specific pipeline stage.
 - Add new intent types that participate in conflict resolution.
@@ -386,3 +432,4 @@ One of the most important lessons from this project was the value of a determini
 
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
+
