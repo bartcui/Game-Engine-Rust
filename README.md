@@ -59,7 +59,7 @@ Here is a list of features form our game engine which we will be discussed in de
 - [Pathfinding Algorithm](#48-pathfinding-algorithm)
 - [Replay System for Deterministic Debugging](#49-replay-system-for-deterministic-debugging)
 
-### 4.1 Grid System and Coordinate Mapping
+### 3.1 Grid System and Coordinate Mapping
 
 A complete grid abstraction layer was implemented to connect logical game coordinates to on-screen positions. Any game implemented on this engine can query the grid directly and does not have to compute transforms manually. This layer includes:
 
@@ -72,7 +72,7 @@ A complete grid abstraction layer was implemented to connect logical game coordi
 
 - **OccupancyIndex**, it tracks which entities occupy each grid tile and supports multiple layers and tile queries. It is used during turn resolution to detect collisions, blocking, and goal triggers. Automatically rebuilt each turn to keep ECS state consistent.
 
-### 4.2 Level Loading and Validation
+### 3.2 Level Loading and Validation
 
 A flexible level loader was implemented to allow developers to define levels using simple JSON files which include all entities' spawn positions. Levels can be authored entirely in data files and JSON deserialization with error checking to verify:
 
@@ -81,7 +81,7 @@ A flexible level loader was implemented to allow developers to define levels usi
 - Duplicate entries
 - Automatic creation of Bevy entities for each object type
 
-### 4.3 Scene Management
+### 3.3 Scene Management
 
 A complete scene management system was implemented using Bevy’s States. The game behaves predictably and transitions cleanly between all major screens.
 
@@ -98,7 +98,7 @@ Features:
 - Reconstruction of all game objects when entering a level
 - Safe separation between "engine running" and "paused" states
 
-### 4.4 Level Progression System
+### 3.4 Level Progression System
 
 The engine now supports multi-level puzzle games and clean progression loops. A level progression structure was added to track the current level index (0 → N-1). It automatically advances upon finishing a level. When the player reaches a goal, a level complete window pops up with options:
 
@@ -110,11 +110,11 @@ If the player has completed all available levels:
 - Displays a dedicated Game Over window
 - Provides a button to return to the menu
 
-### 4.5 Save and Load System
+### 3.5 Save and Load System
 
 A simple save and load system was implemented to provide basic game persistence without requiring full world serialization. The engine introduces a SaveSlot resource that records whether a save exists and which level index the player last reached. Saving is triggered from the pause window via the “Save Game” option, which simply stores the current level index. Loading is available from the main menu through the “Load Game” option, which restores the saved level and starts it from the beginning. This mechanism allows players to leave the game and later continue their progression, offering a user-friendly solution.
 
-### 4.6 Deterministic Turn Scheduler
+### 3.6 Deterministic Turn Scheduler
 
 A fully deterministic turn scheduler was implemented to guarantee reproducible gameplay outcomes across runs, which is essential for debugging, replay, and fair turn-based logic. The engine uses a fixed, explicitly ordered turn pipeline executed inside Bevy’s `Update` schedule:
 
@@ -132,7 +132,7 @@ To eliminate non-deterministic behavior:
 - A seeded random number generator is used for any stochastic behavior.
 - Parallel execution is avoided during the commit phase.
 
-### 4.7 ECS for Game Objects
+### 3.7 ECS for Game Objects
 
 All game entities are modeled using Bevy’s Entity-Component-System (ECS) architecture, which provides clear separation between data and behavior and enables flexible composition of gameplay objects.
 
@@ -154,7 +154,7 @@ For example:
 
 Systems operate over queries of components and are aligned with the deterministic turn pipeline. Importantly, systems **do not mutate persistent world state directly** during planning or resolution phases; all authoritative state changes occur only during the commit phase. This constraint greatly simplifies reasoning about game logic and helps maintain determinism across turns.
 
-### 4.8 Pathfinding Algorithm
+### 3.8 Pathfinding Algorithm
 
 The engine uses **A\*** as its default pathfinding algorithm for AI-controlled entities. A\* was selected because it guarantees optimal paths like Dijkstra’s algorithm while exploring significantly fewer nodes when guided by an admissible heuristic.
 
@@ -172,7 +172,7 @@ Passability rules and movement costs are defined through a pluggable policy inte
 
 This modular design keeps pathfinding logic reusable, extensible, and easy to test in isolation.
 
-### 4.9 Replay System for Deterministic Debugging
+### 3.9 Replay System for Deterministic Debugging
 
 To aid debugging and validation of the deterministic state machine, a lightweight **replay system** was implemented. Instead of recording full world snapshots, the engine logs:
 
@@ -443,5 +443,6 @@ On the presentation side, Bart set up the 2D rendering layer, including grid-ali
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline, we reduced the difficulty of debugging gameplay behaviour. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
+
 
 
