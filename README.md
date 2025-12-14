@@ -172,30 +172,173 @@ The replay mechanism proved especially valuable for diagnosing subtle ordering b
 
 ---
 
-## **4. Developer's Guide**
+## 4. Developer’s Guide
 
-Game control/key binding
-WSAD for directions
+This section explains how a user or developer can use the main features provided by the project deliverable. The engine is designed so that simple games require minimal setup, while more advanced projects can extend core systems without modifying existing logic.
 
-For basic use, devs just write JSON level files and drop them in assets/levels/.
-For more advanced games, they can extend the component set and plug additional systems into the same deterministic turn pipeline.
+### 4.1 Game Control and Key Binding
+
+The default control scheme uses keyboard input mapped to grid-based movement:
+
+- **W**: Move up
+- **S**: Move down
+- **A**: Move left
+- **D**: Move right
+
+Player input is captured each turn and translated into intent components rather than directly mutating game state. This allows input handling to remain deterministic and easily replayable.
+
+Developers can:
+
+- Remap keys by modifying the input system.
+- Add new actions (e.g., interact, wait, special ability) by introducing new intent types and handling them in the resolve/commit phases of the turn pipeline.
+
+---
+
+### 4.2 Creating and Loading Levels
+
+For basic usage, developers only need to create **JSON level files** and place them under:
+
+```json
+assets/levels/
+```
+
+Each level file defines:
+
+- Map dimensions
+- Tile layout
+- Initial spawn positions for entities (player, enemies, walls, goals, etc.)
+
+The engine automatically:
+
+- Parses the JSON file
+- Validates level correctness
+- Spawns the appropriate Bevy entities with predefined components
+
+### 4.3 Save and Load Usage
+
+The save and load system is fully integrated into the engine workflow and requires no additional setup.
+
+### 4.4 Deterministic Turn Pipeline Integration
+
+All gameplay logic runs through a fixed deterministic pipeline:
+
+Input → AI Planning → Resolve → Commit → Cleanup
+
+For basic games, developers do not need to interact with this pipeline directly.
+
+For advanced usage, developers can:
+
+- Insert custom systems into a specific pipeline stage.
+- Add new intent types that participate in conflict resolution.
+- Introduce new rules during the resolve phase (e.g., priority movement, special interactions).
+
+### 4.5 Extending Game Objects with ECS
+
+Game objects are defined by combining components rather than creating rigid class hierarchies.
+
+To add a new object type, a developer typically:
+
+1. Defines one or more new components.
+2. Spawns entities using those components in the level loader or setup system.
+3. Adds systems that operate on those components within the turn pipeline.
+
+### 4.6 Using Pathfinding for AI
+
+AI-controlled entities automatically use the built-in A\* pathfinding system.
+
+Developers can:
+
+- Enable pathfinding by attaching AI-related components to an entity.
+- Customize movement rules or costs by implementing a new pathfinding policy.
+- Swap heuristics or constraints without modifying the core solver.
+
+### 4.7 Replay System for Debugging and Testing
+
+The replay system is primarily intended for developers.
+
+To use it:
+
+- Run the game normally while input and RNG seed are logged.
+- Replay the session by feeding the recorded inputs back into the engine.
+
+This allows developers to:
+
+- Reproduce bugs exactly.
+- Step through turns deterministically.
+- Verify that changes to systems do not alter known outcomes.
 
 ---
 
 ## **5. Reproducibility Guide**
 
+This project is a Rust + Bevy application. The steps below describe exactly how to set up the runtime environment and build/run the project on **Ubuntu Linux** and **macOS Sonoma**.
+
+> Assumption: the instructor has terminal access and can install packages on the machine.
+
+### 5.1 Get the Source Code
+
+Clone the repository and enter it:
+
+```bash
+git clone <REPO_URL>
+cd <REPO_DIR>
+```
+
+### 5.2 Build the Project
+
+From the repo root:
+
+```bash
+cargo build
+```
+
+### 5.3 Run the Project
+
+From the repo root:
+
+```bash
+cargo run
+```
+
+Run in release mode
+
+```bash
+cargo run --release
+```
+
+Once running:
+
+Use W/A/S/D to move (grid-based movement).
+Use the in-game menu options for Save / Load (if included in your build).
+Levels are loaded from assets/levels/.
+
+### 5.4 Verify Level Loading (JSON Levels)
+
+To use the level loading feature, ensure JSON level files exist in:
+
+```json
+assets/levels/
+```
+
 ---
 
 ## **6. Contributions**
 
-Oliver will focus on the core engine loop and the turn scheduler. Each turn will be structured as a fixed pipeline (Input → AI Plan→ Resolve → Commit → Cleanup). Oliver will also implement collision/win/lose rules, tie-breakers with RNG and replay for debugging, and a basic pathfinding algorithm (A\*) that allows enemies to plan shortest routes around obstacles that use the injected passability and Manhattan heuristic.
+Oliver focused on the design and implementation of the core engine loop and the deterministic turn scheduler. Each game turn is executed as a fixed, explicitly ordered pipeline (Input → AI Planning → Resolve → Commit → Cleanup), ensuring reproducible state transitions. Oliver implemented the collision, win, and lose rules, including stochastic deterministic logic using a seeded random number generator, as well as a replay system for debugging deterministic behavior.
 
-This includes implementing the conditions for collisions and win/lose states, such as what happens when the player reaches an exit or when an enemy catches the player, a deterministic conflict resolution when multiple actors target the same tile. Furthermore, movement that respects to objects like doors/keys, traps, and walls via the pluggable policy; fixed neighbour ordering and stable priority-queue tie-breakers in A\*; and golden-replay tests (same seed + inputs ⇒ identical outcomes) to verify the end-to-end determinism of the turn pipeline. By the start of week 4, all these features should be developed and ready for integration.
+This work includes defining clear conditions for game outcomes, such as player–enemy collisions and level completion when the player reaches an exit. A deterministic conflict resolution mechanism was implemented for cases where multiple actors target the same grid tile in a single turn. Oliver also implemented a grid-based A\* pathfinding algorithm that allows enemies to plan shortest paths around obstacles, using injected passability policies and a Manhattan-distance heuristic. The implementation enforces fixed neighbor ordering and stable priority-queue tie-breakers to maintain determinism.
 
-Bart will focus on the data and presentation layer that connects the logic to what players actually see on screen. The main game objects will be designed using small and reusable components such as Position, Actor, Blocking, Goal, Trap and Door. Bart will also build grid utilities that map between grid coordinates and on-screen positions to track which cells are occupied, and help with queries such as finding neighbours or reachable areas. A simple level loader will be implemented that reads levels from text or JSON files and verifies that each level is valid. Input mapping will also be handled here, turning key presses defined in a config file into movement commands. Finally, the basic 2D rendering will be set up so that the grid, characters, and a small status display, such as a turn counter, restart button, and seed number, are visible. For scene management, the engine will use states for the Main Menu, the In Game session, and simpler overlays for temporary screens such as Pause and Game Over. When the player returns to the main menu or restarts a level, the previous game entities will be cleared and the state resets.
+Additional contributions include support for movement constraints involving doors, keys, traps, and walls via a pluggable policy interface, as well as the creation of golden replay tests (same RNG seed and input sequence ⇒ identical end states) to validate end-to-end determinism of the turn pipeline. All of these features were completed and integrated by the beginning of week 4.
 
-After integrating our components, we will ship a small, polished chasing demo that proves the engine works end-to-end. Multiple rounds of testing are necessary to ensure the movement rules function smoothly within the grid and rendering system. By week 5, we will work on the simple game demo, showcase the engine’s features and the final proof that the framework works as intended.
+Bart focused on the data and presentation layer that connected the logic to what players actually saw on screen. The main game objects were designed using small and reusable components such as Position, Actor, Blocking, Goal, Trap, and Door. Bart also built grid utilities that mapped between grid coordinates and on-screen positions to track which cells were occupied, and helped with queries such as finding neighbours or reachable areas. A simple level loader was implemented that read levels from text or JSON files and verified that each level was valid. Input mapping was also handled here, turning key presses defined in a config file into movement commands. Finally, the basic 2D rendering was set up so that the grid, characters, and a small status display, such as a turn counter, restart button, and seed number, were visible. For scene management, the engine used states for the Main Menu, the In Game session, and simpler overlays for temporary screens such as Pause and Game Over. When the player returned to the main menu or restarted a level, the previous game entities were cleared and the state reset.
+
+After integrating the components, the team shipped a small, polished chasing demo that proved the engine worked end-to-end. Multiple rounds of testing were conducted to ensure the movement rules functioned smoothly within the grid and rendering system. By week 5, the team worked on the simple game demo, showcased the engine’s features, and provided the final proof that the framework worked as intended.
+
 
 ---
 
 ## **Lessons learned and concluding remarks**
+
+One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline (Input → AI Planning → Resolve → Commit → Cleanup), we significantly reduced the difficulty of debugging gameplay behavior. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
+
+Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
