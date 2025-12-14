@@ -25,6 +25,18 @@ pub enum GameScene {
     GameOver,
 }
 
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GameOverReason {
+    Caught,
+    AllLevelsComplete,
+}
+
+impl Default for GameOverReason {
+    fn default() -> Self {
+        GameOverReason::AllLevelsComplete
+    }
+}
+
 #[derive(Component)]
 pub struct TurnHudText;
 
@@ -168,6 +180,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(LevelProgress::default())
             .insert_resource(LevelCompleteSelection::default())
             .insert_resource(SaveSlot::default())
+            .insert_resource(GameOverReason::default())
             .add_systems(Startup, (setup_camera, load_sprites))
             // Menu enter/exit
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
@@ -746,9 +759,11 @@ fn update_pause_menu_visuals(
 fn handle_get_caught(
     mut caught_reader: MessageReader<GetCaught>,
     mut next: ResMut<NextState<GameScene>>,
+    mut reason: ResMut<GameOverReason>,
     state: Res<State<GameScene>>,
 ) {
     for _event in caught_reader.read() {
+        *reason = GameOverReason::Caught;
         match *state.get() {
             GameScene::InGame => {
                 // Player got caught -> start ghost playback
@@ -771,9 +786,10 @@ fn handle_goal_reached_events(
     mut commands: Commands,
     progress: Res<LevelProgress>,
     mut next: ResMut<NextState<GameScene>>,
+    mut reason: ResMut<GameOverReason>,
     q_window: Query<Entity, With<LevelCompleteRoot>>,
-    mut log: ResMut<ReplayLog>,
-    mut turn: ResMut<TurnNumber>,
+    log: ResMut<ReplayLog>,
+    turn: ResMut<TurnNumber>,
 ) {
     // If a level-complete window is already visible, don't spawn another
     if !q_window.is_empty() {
@@ -797,6 +813,7 @@ fn handle_goal_reached_events(
 
     if is_last_level {
         // Last level -> go straight to GameOver
+        *reason = GameOverReason::AllLevelsComplete;
         next.set(GameScene::GameOver);
     } else {
         // More levels -> show "Level Complete" window
@@ -961,7 +978,7 @@ fn update_level_complete_visuals(
     }
 }
 
-fn setup_game_over(mut commands: Commands) {
+fn setup_game_over(mut commands: Commands, reason: Res<GameOverReason>) {
     // Background
     commands.spawn((
         Sprite {
@@ -972,17 +989,30 @@ fn setup_game_over(mut commands: Commands) {
         Transform::from_xyz(0.0, 0.0, 70.0),
         GameOverRoot,
     ));
+    let (title, subtitle, subtitle_color) = match *reason {
+        GameOverReason::Caught => (
+            "You got caught!",
+            "Press ENTER to retry",
+            Color::srgb(1.0, 0.4, 0.4),
+        ),
+        GameOverReason::AllLevelsComplete => (
+            "All Levels Complete!",
+            "Press ENTER to return to menu",
+            Color::srgb(1.0, 1.0, 0.0),
+        ),
+    };
     commands.spawn((
-        Text2d::new("All Levels Complete!"),
+        Text2d::new(title),
         TextFont::from_font_size(32.0),
         TextColor(Color::WHITE),
         Transform::from_xyz(0.0, 60.0, 80.0),
         GameOverRoot,
     ));
+
     commands.spawn((
-        Text2d::new("Press ENTER to return to menu"),
+        Text2d::new(subtitle),
         TextFont::from_font_size(24.0),
-        TextColor(Color::srgb(1.0, 1.0, 0.0)),
+        TextColor(subtitle_color),
         Transform::from_xyz(0.0, 10.0, 80.0),
         GameOverRoot,
     ));
@@ -996,10 +1026,14 @@ fn teardown_game_over(mut commands: Commands, q: Query<Entity, With<GameOverRoot
 
 fn game_over_input_system(
     keyboard: Res<ButtonInput<KeyCode>>,
+    reason: Res<GameOverReason>,
     mut next: ResMut<NextState<GameScene>>,
 ) {
     if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::NumpadEnter) {
-        next.set(GameScene::Menu);
+        match *reason {
+            GameOverReason::Caught => next.set(GameScene::InGame), // retry
+            GameOverReason::AllLevelsComplete => next.set(GameScene::Menu),
+        }
     }
 }
 

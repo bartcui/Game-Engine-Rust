@@ -4,85 +4,37 @@
     {
       "turn": 0,
       "input": {
-        "Move": "Right"
+        "Move": "Left"
       }
     },
     {
-      "turn": 1,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 2,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 3,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 4,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 5,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 6,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 7,
+      "turn": 0,
       "input": {
         "Move": "Left"
       }
     },
     {
-      "turn": 8,
+      "turn": 0,
       "input": {
         "Move": "Left"
       }
     },
     {
-      "turn": 9,
+      "turn": 0,
       "input": {
         "Move": "Left"
       }
     },
     {
-      "turn": 10,
+      "turn": 0,
       "input": {
-        "Move": "Up"
+        "Move": "Left"
       }
     },
     {
-      "turn": 10,
+      "turn": 0,
       "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 10,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 10,
-      "input": {
-        "Move": "Up"
+        "Move": "Left"
       }
     }
   ]
