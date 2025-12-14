@@ -1,5 +1,5 @@
 {
-  "name": "Haunted Corridors",
+  "name": "level2",
   "width": 12,
   "height": 8,
 
@@ -29,7 +29,7 @@
 
   "doors": [
     { "x": 5, "y": 3, "locked": true,  "key_id": 1 },
-    { "x": 6, "y": 3, "locked": false, "key_id": 0 }
+    { "x": 6, "y": 3, "locked": true, "key_id": 0 }
   ],
 
   "enemies": [

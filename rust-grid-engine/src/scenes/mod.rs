@@ -108,6 +108,7 @@ impl Default for LevelProgress {
             level_paths: vec![
                 "assets/levels/level1.json".to_string(),
                 "assets/levels/level2.json".to_string(),
+                "assets/levels/level3.json".to_string(),
                 // add more here later
             ],
             current: 0,
@@ -161,12 +162,12 @@ pub struct SpriteAssets {
 fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(SpriteAssets {
         player: asset_server.load("sprites/player.png"),
-        wall: asset_server.load("sprites/goal.png"),
+        wall: asset_server.load("sprites/wall.png"),
         goal: asset_server.load("sprites/goal.png"),
-        trap: asset_server.load("sprites/goal.png"),
-        door_locked: asset_server.load("sprites/goal.png"),
-        door_unlocked: asset_server.load("sprites/goal.png"),
-        enemy: asset_server.load("sprites/goal.png"),
+        trap: asset_server.load("sprites/trap.png"),
+        door_locked: asset_server.load("sprites/door.png"),
+        door_unlocked: asset_server.load("sprites/door.png"),
+        enemy: asset_server.load("sprites/enemy.png"),
     });
 }
 
@@ -438,7 +439,7 @@ fn spawn_current_level(
             Blocking,
             Position(w),
             Sprite {
-                color: Color::srgb(0.3, 0.3, 0.3),
+                image: sprite_assets.wall.clone(),
                 custom_size: Some(Vec2::splat(grid_tf.tile_size)),
                 ..Default::default()
             },
@@ -466,7 +467,7 @@ fn spawn_current_level(
             Trap,
             Position(t),
             Sprite {
-                color: Color::srgb(0.9, 0.2, 0.2),
+                image: sprite_assets.trap.clone(),
                 custom_size: Some(Vec2::splat(grid_tf.tile_size)),
                 ..Default::default()
             },
@@ -482,10 +483,10 @@ fn spawn_current_level(
             Blocking,
             Position(coord),
             Sprite {
-                color: if d.locked {
-                    Color::srgb(0.7, 0.5, 0.2)
+                image: if d.locked {
+                    sprite_assets.door_locked.clone()
                 } else {
-                    Color::srgb(0.9, 0.8, 0.3)
+                    sprite_assets.door_unlocked.clone()
                 },
                 custom_size: Some(Vec2::splat(grid_tf.tile_size)),
                 ..Default::default()
@@ -504,7 +505,7 @@ fn spawn_current_level(
             Position(coord),
             PendingIntent(Intent::Wait),
             Sprite {
-                color: Color::srgb(0.8, 0.2, 0.8),
+                image: sprite_assets.enemy.clone(),
                 custom_size: Some(Vec2::splat(grid_tf.tile_size)),
                 ..Default::default()
             },
@@ -797,12 +798,11 @@ fn handle_goal_reached_events(
 ) {
     // If a level-complete window is already visible, don't spawn another
     if !q_window.is_empty() {
-        // still drain the events to avoid buildup
         for _ in ev_goal.read() {}
         return;
     }
 
-    // We only care whether at least one goal event happened this frame
+    // whether at least one goal event happened this frame
     let mut triggered = false;
     for _event in ev_goal.read() {
         triggered = true;
@@ -812,7 +812,12 @@ fn handle_goal_reached_events(
     if !triggered {
         return;
     }
-
+    info!(
+        "GOAL: current={} len={} paths={:?}",
+        progress.current,
+        progress.level_paths.len(),
+        progress.level_paths
+    );
     let is_last_level = progress.current + 1 >= progress.level_paths.len();
 
     if is_last_level {
