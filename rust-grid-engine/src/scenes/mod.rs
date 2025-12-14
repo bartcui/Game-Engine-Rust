@@ -44,6 +44,9 @@ pub struct TurnHudText;
 #[derive(Component)]
 pub struct LevelHudText;
 
+#[derive(Resource, Default, Clone)]
+pub struct CurrentLevelName(pub String);
+
 // MAIN MENU
 
 #[derive(Component)]
@@ -178,6 +181,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(GridTransform::default())
             .insert_resource(PauseState::default())
             .insert_resource(MainMenuSelection::default())
+            .insert_resource(CurrentLevelName::default())
             .insert_resource(PauseMenuSelection::default())
             .insert_resource(LevelProgress::default())
             .insert_resource(LevelCompleteSelection::default())
@@ -387,6 +391,7 @@ fn setup_game(
     mut turn: ResMut<TurnNumber>,
     progress: Res<LevelProgress>,
     sprite_assets: Res<SpriteAssets>,
+    mut current_name: ResMut<CurrentLevelName>,
 ) {
     spawn_current_level(
         &mut commands,
@@ -394,6 +399,7 @@ fn setup_game(
         &mut turn,
         &progress,
         &sprite_assets,
+        &mut current_name,
     );
 }
 
@@ -403,6 +409,7 @@ fn spawn_current_level(
     turn: &mut TurnNumber,
     progress: &LevelProgress,
     sprite_assets: &SpriteAssets,
+    current_name: &mut CurrentLevelName,
 ) {
     // Reset per-run state
     turn.0 = 0;
@@ -417,6 +424,12 @@ fn spawn_current_level(
         panic!("Failed to read level file {path}: {e}");
     });
     let level = load_level_from_json(&bytes).expect("invalid level JSON");
+    info!("Loaded level path: {path}");
+    info!("Parsed JSON name field: {:?}", level.name);
+    current_name.0 = level
+        .name
+        .clone()
+        .unwrap_or_else(|| current_level_label(progress));
 
     // player
     let p = level.player_start;
@@ -523,11 +536,9 @@ pub fn sync_transforms(
     }
 }
 
-fn setup_hud(mut commands: Commands, progress: Res<LevelProgress>) {
-    // Level name
-    let level_name = current_level_label(&progress);
+fn setup_hud(mut commands: Commands, current_name: Res<CurrentLevelName>) {
     commands.spawn((
-        Text2d::new(format!("Level: {}", level_name)),
+        Text2d::new(format!("Level: {}", current_name.0)),
         TextFont::from_font_size(24.0),
         TextColor(Color::WHITE),
         Transform::from_xyz(-380.0, 230.0, 10.0),
@@ -570,15 +581,11 @@ fn update_turn_hud(turn: Res<TurnNumber>, mut q: Query<&mut Text2d, With<TurnHud
     }
 }
 
-fn update_level_hud(progress: Res<LevelProgress>, mut q: Query<&mut Text2d, With<LevelHudText>>) {
-    if !progress.is_changed() {
-        return;
-    }
-
-    let label = current_level_label(&progress);
+fn update_level_hud(current_name: Res<CurrentLevelName>, mut q: Query<&mut Text2d, With<LevelHudText>>) {
+    if !current_name.is_changed() { return; }
     for mut text in &mut q {
         text.clear();
-        text.push_str(&format!("Level: {}", label));
+        text.push_str(&format!("Level: {}", current_name.0));
     }
 }
 
@@ -821,7 +828,7 @@ fn handle_goal_reached_events(
     let is_last_level = progress.current + 1 >= progress.level_paths.len();
 
     if is_last_level {
-        // Last level -> go straight to GameOver
+        //go straight to GameOver
         *reason = GameOverReason::AllLevelsComplete;
         next.set(GameScene::GameOver);
     } else {
@@ -898,6 +905,7 @@ fn level_complete_navigation_system(
     grid_tf: Res<GridTransform>,
     mut turn: ResMut<TurnNumber>,
     sprite_assets: Res<SpriteAssets>,
+    mut current_name: ResMut<CurrentLevelName>,
 ) {
     // Only run if the window is visible
     if q_roots.is_empty() {
@@ -945,6 +953,7 @@ fn level_complete_navigation_system(
                             &mut turn,
                             &progress,
                             &sprite_assets,
+                            &mut current_name,
                         );
                     } else {
                         // No more levels: go to GameOver scene
