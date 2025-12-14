@@ -9,10 +9,7 @@ use schedule::TurnSystems;
 use crate::engine::replay::{
     ActiveReplay, ReplayLog, ReplayTickTimer, feed_replay_inputs_system, is_replay_active,
 };
-use crate::engine::rules::GetCaught;
-use crate::engine::rules::ReachedGoal as GoalReached;
 use crate::grid::OccupancyIndex;
-use crate::intents::InputEvent;
 
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct TurnNumber(pub u64);

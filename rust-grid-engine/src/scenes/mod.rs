@@ -1,7 +1,8 @@
 use crate::components::*;
 use crate::engine::TurnNumber;
 use crate::engine::replay::{
-    ActiveReplay, reset_replay, save_replay_on_game_over, start_replay_mode, stop_replay_mode,
+    ActiveReplay, ReplayLog, reset_replay, save_replay_on_game_over, start_replay_mode,
+    stop_replay_mode,
 };
 use crate::engine::rules::{GetCaught, ReachedGoal};
 use crate::grid::{GridCoord, GridTransform};
@@ -515,7 +516,7 @@ fn setup_hud(mut commands: Commands, progress: Res<LevelProgress>) {
         TextColor(Color::WHITE),
         Transform::from_xyz(-380.0, 230.0, 10.0),
         LevelHudText,
-    ));    
+    ));
     // Turn counter
     commands.spawn((
         Text2d::new("Turn: 0"),
@@ -533,10 +534,13 @@ fn current_level_label(progress: &LevelProgress) -> String {
         .map(|s| s.as_str())
         .unwrap_or("unknown");
 
-    let filename = path.rsplit('/').next().unwrap_or(path);          
-    let filename = filename.rsplit('\\').next().unwrap_or(filename); 
+    let filename = path.rsplit('/').next().unwrap_or(path);
+    let filename = filename.rsplit('\\').next().unwrap_or(filename);
 
-    filename.strip_suffix(".json").unwrap_or(filename).to_string()
+    filename
+        .strip_suffix(".json")
+        .unwrap_or(filename)
+        .to_string()
 }
 
 fn update_turn_hud(turn: Res<TurnNumber>, mut q: Query<&mut Text2d, With<TurnHudText>>) {
@@ -550,10 +554,7 @@ fn update_turn_hud(turn: Res<TurnNumber>, mut q: Query<&mut Text2d, With<TurnHud
     }
 }
 
-fn update_level_hud(
-    progress: Res<LevelProgress>,
-    mut q: Query<&mut Text2d, With<LevelHudText>>,
-) {
+fn update_level_hud(progress: Res<LevelProgress>, mut q: Query<&mut Text2d, With<LevelHudText>>) {
     if !progress.is_changed() {
         return;
     }
@@ -568,7 +569,15 @@ fn update_level_hud(
 fn teardown_game(
     mut commands: Commands,
     mut pause: ResMut<PauseState>,
-    q_world: Query<Entity, Or<(With<Position>, With<Actor>, With<TurnHudText>, With<LevelHudText>)>>,
+    q_world: Query<
+        Entity,
+        Or<(
+            With<Position>,
+            With<Actor>,
+            With<TurnHudText>,
+            With<LevelHudText>,
+        )>,
+    >,
     q_pause_ui: Query<Entity, With<PauseMenuRoot>>,
     q_level_complete_ui: Query<Entity, With<LevelCompleteRoot>>,
 ) {
@@ -763,6 +772,8 @@ fn handle_goal_reached_events(
     progress: Res<LevelProgress>,
     mut next: ResMut<NextState<GameScene>>,
     q_window: Query<Entity, With<LevelCompleteRoot>>,
+    mut log: ResMut<ReplayLog>,
+    mut turn: ResMut<TurnNumber>,
 ) {
     // If a level-complete window is already visible, don't spawn another
     if !q_window.is_empty() {
@@ -791,6 +802,7 @@ fn handle_goal_reached_events(
         // More levels -> show "Level Complete" window
         pause.paused = true;
         selection.index = 0;
+        reset_replay(log, turn);
         spawn_level_complete_window(&mut commands);
     }
 }
