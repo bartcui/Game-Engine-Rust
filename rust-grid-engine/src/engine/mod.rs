@@ -3,6 +3,8 @@ pub mod rules;
 pub mod schedule;
 
 use bevy::prelude::*;
+use rand::RngCore;
+use rand::rngs::OsRng;
 use rand::{SeedableRng, rngs::StdRng};
 use schedule::TurnSystems;
 
@@ -17,13 +19,18 @@ pub struct TurnNumber(pub u64);
 #[derive(Resource, Debug)]
 pub struct TurnRng(pub StdRng);
 
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct RunSeed(pub u64);
+
 pub struct EnginePlugin;
 impl Plugin for EnginePlugin {
     fn build(&self, app: &mut App) {
+        let seed: u64 = OsRng.next_u64();
         app.init_resource::<TurnNumber>()
             .init_resource::<ActiveReplay>()
             .init_resource::<ReplayTickTimer>()
-            .insert_resource(TurnRng(StdRng::seed_from_u64(0)))
+            .insert_resource(RunSeed(seed))
+            .insert_resource(TurnRng(StdRng::seed_from_u64(seed)))
             .insert_resource(ReplayLog::default()) // input logging / replays
             .insert_resource(OccupancyIndex::default()) // grid occupancy queries
             // Configure deterministic turn pipeline inside Update.

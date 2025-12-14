@@ -5,6 +5,7 @@ use crate::engine::replay::{
     stop_replay_mode,
 };
 use crate::engine::rules::{GetCaught, ReachedGoal};
+use crate::engine::{RunSeed, TurnRng};
 use crate::grid::{GridCoord, GridTransform};
 use crate::intents::Intent;
 use crate::map::load_level_from_json;
@@ -790,6 +791,8 @@ fn handle_goal_reached_events(
     q_window: Query<Entity, With<LevelCompleteRoot>>,
     log: ResMut<ReplayLog>,
     turn: ResMut<TurnNumber>,
+    rng: ResMut<TurnRng>,
+    seed: ResMut<RunSeed>,
 ) {
     // If a level-complete window is already visible, don't spawn another
     if !q_window.is_empty() {
@@ -819,7 +822,7 @@ fn handle_goal_reached_events(
         // More levels -> show "Level Complete" window
         pause.paused = true;
         selection.index = 0;
-        reset_replay(log, turn);
+        reset_replay(log, turn, rng, seed);
         spawn_level_complete_window(&mut commands);
     }
 }

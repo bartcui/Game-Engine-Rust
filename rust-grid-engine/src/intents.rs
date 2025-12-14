@@ -6,6 +6,7 @@ use crate::grid::occupancy::OccupancyIndex;
 use crate::grid::{Dir, Layer};
 use crate::pathfinding::astar::{AStarPolicy, astar};
 use bevy::{input::keyboard::KeyCode, prelude::*};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -63,6 +64,7 @@ pub fn plan_ai(
     occ: Res<OccupancyIndex>,
     q_player: Query<&Position, With<Player>>,
     mut q_ai: Query<(&Position, &mut PendingIntent), With<AI>>,
+    mut rng: ResMut<crate::engine::TurnRng>,
 ) {
     let Ok(player_pos) = q_player.single() else {
         // no player -> AI does nothing
@@ -95,6 +97,16 @@ pub fn plan_ai(
             continue;
         }
 
+        // With small probability, take a random legal step (stochastic behavior)
+        if rng.0.gen_bool(0.10) {
+            if let Some(dir) = random_legal_step(start, target, occ.as_ref(), &mut rng.0) {
+                pending.0 = Intent::Move(dir);
+                continue;
+            }
+            // fall through to A* if no legal random step
+        }
+
+        // Otherwise: take the A* optimal next step
         // Compute full path from AI to player
         let Some(path) = astar(start, target, &policy) else {
             // No path found → wait
@@ -118,6 +130,41 @@ pub fn plan_ai(
             // Next tile is weird → wait
             pending.0 = Intent::Wait;
         }
+    }
+}
+
+fn random_legal_step(
+    start: GridCoord,
+    target: GridCoord,
+    occ: &OccupancyIndex,
+    rng: &mut rand::rngs::StdRng,
+) -> Option<Dir> {
+    // Candidate dirs in a fixed list
+    let dirs = [Dir::Up, Dir::Down, Dir::Left, Dir::Right];
+
+    // Collect legal moves (you can bias these later)
+    let mut legal: Vec<Dir> = Vec::new();
+    for d in dirs {
+        let next = d.step(start);
+
+        // let AI step into player tile to "catch"
+        if next == target {
+            legal.push(d);
+            continue;
+        }
+
+        let blocked =
+            !occ.at(Layer::Blockers, next).is_empty() || !occ.at(Layer::Actors, next).is_empty();
+        if !blocked {
+            legal.push(d);
+        }
+    }
+
+    if legal.is_empty() {
+        None
+    } else {
+        let idx = rng.gen_range(0..legal.len());
+        Some(legal[idx])
     }
 }
 

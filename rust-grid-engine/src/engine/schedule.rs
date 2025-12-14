@@ -1,7 +1,6 @@
 use crate::components::{AI, Actor, Player};
 use crate::components::{Goal, PendingIntent, Position, Trap};
 use crate::engine::TurnNumber;
-use crate::engine::replay::ActiveReplay;
 use crate::engine::rules::{ActiveRules, GetCaught, MoveCheck, ReachedGoal, SteppedOnTrap};
 use crate::grid::occupancy::OccupancyIndex;
 use crate::intents::Intent;

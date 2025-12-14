@@ -1,7 +1,10 @@
 use super::TurnNumber;
 use crate::components::{PendingIntent, Player};
+use crate::engine::{RunSeed, TurnRng};
 use crate::intents::{InputEvent, Intent};
 use bevy::prelude::*;
+use rand::rngs::StdRng;
+use rand::{RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -94,8 +97,19 @@ pub fn stop_replay_mode(mut active: ResMut<ActiveReplay>, mut tick_timer: ResMut
     tick_timer.0.reset();
 }
 
-pub fn reset_replay(mut log: ResMut<ReplayLog>, mut turn: ResMut<TurnNumber>) {
+pub fn reset_replay(
+    mut log: ResMut<ReplayLog>,
+    mut turn: ResMut<TurnNumber>,
+    mut rng: ResMut<TurnRng>,
+    mut seed: ResMut<RunSeed>,
+) {
     // Fresh run => fresh turn counter + fresh log
+
+    let new_seed: u64 = rand::rngs::OsRng.next_u64();
+
+    seed.0 = new_seed;
+    rng.0 = StdRng::seed_from_u64(new_seed);
+
     turn.0 = 0;
     log.clear();
 }
@@ -144,10 +158,9 @@ pub fn feed_replay_inputs_system(
     active.cursor = cursor;
 }
 
-pub fn save_replay_on_game_over(mut log: ResMut<ReplayLog>) {
-    let seed = 0;
-    let replay = crate::engine::replay::Replay::from_log(seed, &log);
-    let _ = replay.save_to_file("assets/replays/last_run.json");
+pub fn save_replay_on_game_over(mut log: ResMut<ReplayLog>, seed: Res<RunSeed>) {
+    let replay = Replay::from_log(seed.0, &log);
+    let _ = replay.save_to_file("assets/replays/last_run.json").ok();
 
     log.clear();
 }
@@ -156,14 +169,20 @@ pub fn start_replay_mode(
     mut active: ResMut<ActiveReplay>,
     mut turn: ResMut<TurnNumber>,
     mut tick_timer: ResMut<ReplayTickTimer>,
+    mut rng: ResMut<TurnRng>,
+    mut seed: ResMut<RunSeed>,
 ) {
     // Load the replay file
     if let Ok(replay) = Replay::load_from_file("assets/replays/last_run.json") {
-        turn.0 = 0;
-        active.start(replay);
-
         // Reset the speed timer
         tick_timer.0.reset();
+
+        // Restore seed
+        seed.0 = replay.seed;
+        rng.0 = StdRng::seed_from_u64(replay.seed);
+
+        turn.0 = 0;
+        active.start(replay);
     } else {
         active.stop();
     }
