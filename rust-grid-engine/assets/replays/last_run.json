@@ -1,40 +1,40 @@
 {
-  "seed": 16304806337549994210,
+  "seed": 189859731397350122,
   "inputs": [
     {
       "turn": 0,
       "input": {
-        "Move": "Up"
+        "Move": "Left"
       }
     },
     {
       "turn": 1,
       "input": {
-        "Move": "Right"
+        "Move": "Left"
       }
     },
     {
       "turn": 2,
       "input": {
-        "Move": "Right"
+        "Move": "Left"
       }
     },
     {
       "turn": 3,
       "input": {
-        "Move": "Right"
+        "Move": "Up"
       }
     },
     {
       "turn": 4,
       "input": {
-        "Move": "Right"
+        "Move": "Up"
       }
     },
     {
       "turn": 5,
       "input": {
-        "Move": "Right"
+        "Move": "Up"
       }
     },
     {
@@ -64,7 +64,7 @@
     {
       "turn": 10,
       "input": {
-        "Move": "Up"
+        "Move": "Right"
       }
     },
     {
@@ -77,114 +77,6 @@
       "turn": 12,
       "input": {
         "Move": "Left"
-      }
-    },
-    {
-      "turn": 13,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 14,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 15,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 16,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 17,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 18,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 19,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 20,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 21,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 22,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 23,
-      "input": {
-        "Move": "Left"
-      }
-    },
-    {
-      "turn": 24,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 24,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 25,
-      "input": {
-        "Move": "Right"
-      }
-    },
-    {
-      "turn": 26,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 27,
-      "input": {
-        "Move": "Up"
-      }
-    },
-    {
-      "turn": 28,
-      "input": {
-        "Move": "Down"
-      }
-    },
-    {
-      "turn": 29,
-      "input": {
-        "Move": "Down"
       }
     }
   ]

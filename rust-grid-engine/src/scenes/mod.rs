@@ -182,6 +182,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(LevelCompleteSelection::default())
             .insert_resource(SaveSlot::default())
             .insert_resource(GameOverReason::default())
+            .add_systems(Startup, maybe_start_replay_on_boot)
             .add_systems(Startup, (setup_camera, load_sprites))
             // Menu enter/exit
             .add_systems(OnEnter(GameScene::Menu), setup_menu)
@@ -1111,5 +1112,12 @@ fn check_replay_finished(
     // If we've consumed all input events, end the ghost run.
     if active.cursor >= replay.inputs.len() {
         next.set(GameScene::GameOver);
+    }
+}
+
+//used for testing
+fn maybe_start_replay_on_boot(mut next: ResMut<NextState<GameScene>>) {
+    if std::env::var("REPLAY").as_deref() == Ok("1") {
+        next.set(GameScene::Replay);
     }
 }
