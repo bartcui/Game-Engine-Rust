@@ -29,6 +29,7 @@ The system is designed to support core gameplay mechanics commonly found in grid
 ### Gap in the Rust Game Development Ecosystem
 
 While Rust has a growing game development ecosystem, existing engines and frameworks tend to fall into two extremes:
+
 - large, feature-heavy engines inspired by AAA development workflows or
 - low-level libraries that require significant engine knowledge before producing a playable result.
 
@@ -241,19 +242,27 @@ Example level template files are given for developers to build on top of them:
   "player_start": { "x": 1, "y": 1 },
 
   "walls": [
-    { "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 2, "y": 0 },
-    { "x": 3, "y": 0 }, { "x": 4, "y": 0 }, { "x": 5, "y": 0 },
+    { "x": 0, "y": 0 },
+    { "x": 1, "y": 0 },
+    { "x": 2, "y": 0 },
+    { "x": 3, "y": 0 },
+    { "x": 4, "y": 0 },
+    { "x": 5, "y": 0 },
 
-    { "x": 0, "y": 1 }, { "x": 0, "y": 2 }, { "x": 0, "y": 3 },
-    { "x": 0, "y": 4 }, { "x": 0, "y": 5 },
+    { "x": 0, "y": 1 },
+    { "x": 0, "y": 2 },
+    { "x": 0, "y": 3 },
+    { "x": 0, "y": 4 },
+    { "x": 0, "y": 5 },
 
-    { "x": 11, "y": 1 }, { "x": 11, "y": 2 }, { "x": 11, "y": 3 },
-    { "x": 11, "y": 4 }, { "x": 11, "y": 5 }
+    { "x": 11, "y": 1 },
+    { "x": 11, "y": 2 },
+    { "x": 11, "y": 3 },
+    { "x": 11, "y": 4 },
+    { "x": 11, "y": 5 }
   ],
 
-  "goals": [
-    { "x": 10, "y": 6 }
-  ],
+  "goals": [{ "x": 10, "y": 6 }],
 
   "traps": [
     { "x": 4, "y": 3 },
@@ -261,7 +270,7 @@ Example level template files are given for developers to build on top of them:
   ],
 
   "doors": [
-    { "x": 5, "y": 3, "locked": true,  "key_id": 1 },
+    { "x": 5, "y": 3, "locked": true, "key_id": 1 },
     { "x": 6, "y": 3, "locked": true, "key_id": 0 }
   ],
 
@@ -345,6 +354,23 @@ To add a new object type, a developer typically:
 1. Defines one or more new components.
 2. Spawns entities using those components in the level loader or setup system.
 3. Adds systems that operate on those components within the turn pipeline.
+
+For example, a player entity can be initialized as shown below:
+
+```rs
+commands.spawn((
+        Player,
+        Actor,
+        Position(p),
+        PendingIntent(Intent::Wait),
+        Sprite {
+            image: sprite_assets.player.clone(),
+            custom_size: Some(Vec2::splat(grid_tf.tile_size)),
+            ..Default::default()
+        },
+        Transform::from_translation(grid_tf.to_world(p)),
+    ));
+```
 
 ### 4.6 Using Pathfinding for AI
 
@@ -434,7 +460,7 @@ Additional contributions include support for movement constraints involving door
 
 **Bart** focused on the data and presentation layer that connects the engine’s core logic with what players see and interact with on screen. He designed the primary game entities using small, reusable ECS components and implemented grid utilities to map between logical grid coordinates and world-space positions. These utilities support occupancy tracking and spatial queries such as neighbour lookup and reachability, enabling consistent rendering and gameplay alignment. Bart implemented a flexible level-loading system that reads level definitions from JSON files, validates their structure, and spawns the corresponding game entities. He also handled player input mapping, translating configurable keyboard inputs into deterministic movement intents compatible with the engine’s turn-based pipeline.
 
-On the presentation side, Bart set up the 2D rendering layer, including grid-aligned sprites, dynamic background colour changes, and support for replacing placeholder shapes with image-based assets. A heads-up display (HUD) was added to show runtime information such as the current turn count and level name. He also implemented full scene and UI management using Bevy’s state system, including a main menu, in-game session, pause menu, level-complete overlay, and game-over screen. These scenes cleanly manage setup and teardown to ensure proper state resets when restarting levels or returning to the main menu. Additional features implemented include an interactive pause menu with resume and exit options, level progression across multiple stages, and save/load functionality that allows players to persist and restore game state. 
+On the presentation side, Bart set up the 2D rendering layer, including grid-aligned sprites, dynamic background colour changes, and support for replacing placeholder shapes with image-based assets. A heads-up display (HUD) was added to show runtime information such as the current turn count and level name. He also implemented full scene and UI management using Bevy’s state system, including a main menu, in-game session, pause menu, level-complete overlay, and game-over screen. These scenes cleanly manage setup and teardown to ensure proper state resets when restarting levels or returning to the main menu. Additional features implemented include an interactive pause menu with resume and exit options, level progression across multiple stages, and save/load functionality that allows players to persist and restore game state.
 
 ---
 
@@ -443,7 +469,3 @@ On the presentation side, Bart set up the 2D rendering layer, including grid-ali
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline, we reduced the difficulty of debugging gameplay behaviour. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
-
-
-
-

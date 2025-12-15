@@ -1,2 +1,4 @@
 /target
+/replays/last_run.json
+/replays/golden_snapshots.json
 .DS_Store
