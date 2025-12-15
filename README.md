@@ -441,31 +441,39 @@ assets/levels/
 ```
 
 ### 5.5 Running the testes
+
 1. Run deterministic replay tests (CI-safe)
-This runs:
-  - “run twice and compare” determinism check, and
+   This runs:
 
-  - “compare against golden” regression check.
+- “run twice and compare” determinism check, and
 
-  ```bash
+- “compare against golden” regression check.
+
+```bash
 cargo test --test replay_golden -- --nocapture
-  ```
+```
+
 If the test fails, it indicates the simulation output changed.
 
 2. Regenerate golden_snapshots.json if needed
+
 ```bash
 cargo test --test replay_golden generate_golden_snapshots -- --ignored --nocapture
 ```
+
 This overwrites:
+
 ```bash
 replays/golden_snapshots.json
 ```
-After regenerating:
-  - Re-run the normal test suite:
-  ```bash
-  cargo test --test replay_golden -- --nocapture
-  ```
 
+After regenerating:
+
+- Re-run the normal test suite:
+
+```bash
+cargo test --test replay_golden -- --nocapture
+```
 
 ---
 
@@ -486,3 +494,9 @@ On the presentation side, Bart set up the 2D rendering layer, including grid-ali
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline, we reduced the difficulty of debugging gameplay behaviour. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
+
+## **7. Video Slide Presentation**
+
+A recorded walkthrough of the project presentation is available here:
+
+- **Presentation Video**: [presentation.mov](presentation/video-slide%20presentation.mov)
