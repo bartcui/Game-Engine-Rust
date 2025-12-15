@@ -255,16 +255,6 @@ Example level template files are given for developers to build on top of them:
     { "x": 10, "y": 6 }
   ],
 
-  "traps": [
-    { "x": 4, "y": 3 },
-    { "x": 7, "y": 4 }
-  ],
-
-  "doors": [
-    { "x": 5, "y": 3, "locked": true,  "key_id": 1 },
-    { "x": 6, "y": 3, "locked": true, "key_id": 0 }
-  ],
-
   "enemies": [
     { "x": 8, "y": 5, "kind": "ghost" },
     { "x": 3, "y": 5, "kind": "ghost" }
@@ -384,7 +374,7 @@ This project is a Rust + Bevy application. The steps below describe exactly how 
 Clone the repository and enter it:
 
 ```bash
-git clone <REPO_URL>
+git clone https://github.com/bartcui/Game-Engine-Rust.git
 cd <REPO_DIR>
 ```
 
@@ -443,6 +433,8 @@ On the presentation side, Bart set up the 2D rendering layer, including grid-ali
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline, we reduced the difficulty of debugging gameplay behaviour. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
+
+
 
 
 
