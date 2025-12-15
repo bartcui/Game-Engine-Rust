@@ -270,14 +270,13 @@ fn setup_menu(mut commands: Commands, mut selection: ResMut<MainMenuSelection>) 
 
     // Title
     commands.spawn((
-        Text2d::new("Demo"),
+        Text2d::new("2D Game Engine Demo"),
         TextFont::from_font_size(40.0),
         TextColor(Color::WHITE),
         Transform::from_xyz(0.0, 80.0, 10.0),
         MenuText,
     ));
 
-    // helper function to spawn one menu item
     fn spawn_item(
         commands: &mut Commands,
         index: usize,

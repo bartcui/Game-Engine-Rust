@@ -264,16 +264,6 @@ Example level template files are given for developers to build on top of them:
 
   "goals": [{ "x": 10, "y": 6 }],
 
-  "traps": [
-    { "x": 4, "y": 3 },
-    { "x": 7, "y": 4 }
-  ],
-
-  "doors": [
-    { "x": 5, "y": 3, "locked": true, "key_id": 1 },
-    { "x": 6, "y": 3, "locked": true, "key_id": 0 }
-  ],
-
   "enemies": [
     { "x": 8, "y": 5, "kind": "ghost" },
     { "x": 3, "y": 5, "kind": "ghost" }
@@ -410,7 +400,7 @@ This project is a Rust + Bevy application. The steps below describe exactly how 
 Clone the repository and enter it:
 
 ```bash
-git clone <REPO_URL>
+git clone https://github.com/bartcui/Game-Engine-Rust.git
 cd <REPO_DIR>
 ```
 
