@@ -401,7 +401,7 @@ Clone the repository and enter it:
 
 ```bash
 git clone https://github.com/bartcui/Game-Engine-Rust.git
-cd <REPO_DIR>
+cd Game-Engine-Rust/rust-grid-engine/
 ```
 
 ### 5.2 Build the Project
@@ -439,6 +439,33 @@ To use the level loading feature, ensure JSON level files exist in:
 ```json
 assets/levels/
 ```
+
+### 5.5 Running the testes
+1. Run deterministic replay tests (CI-safe)
+This runs:
+  - “run twice and compare” determinism check, and
+
+  - “compare against golden” regression check.
+
+  ```bash
+cargo test --test replay_golden -- --nocapture
+  ```
+If the test fails, it indicates the simulation output changed.
+
+2. Regenerate golden_snapshots.json if needed
+```bash
+cargo test --test replay_golden generate_golden_snapshots -- --ignored --nocapture
+```
+This overwrites:
+```bash
+replays/golden_snapshots.json
+```
+After regenerating:
+  - Re-run the normal test suite:
+  ```bash
+  cargo test --test replay_golden -- --nocapture
+  ```
+
 
 ---
 
