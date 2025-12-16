@@ -52,6 +52,8 @@ If released as open source, this project provides strong educational value for t
 
 Because the engine is intentionally small and domain-specific, learners can understand the entire codebase without being overwhelmed by rendering pipelines or complex editor tooling. This makes it a suitable starting point for students transitioning from basic Rust programs to larger architectural designs, as well as a reference implementation for turn-based game logic, AI planning, and reproducible simulation in Rust.
 
+---
+
 ## **3. Features**
 
 Here is a list of features from our game engine which we will discuss in detail:
@@ -222,7 +224,6 @@ Player input is captured each turn and translated into intent components rather 
 
 Developers can remap keys or add new actions by modifying the input systems for gameplay in **gather_player_input** function in **intents.rs** or UI navigation in **menu_input_system** function in **scenes/mod.rs**.
 
----
 
 ### 4.2 Creating and Loading Levels
 
@@ -487,7 +488,7 @@ cargo test --test replay_golden -- --nocapture
 
 **Oliver** focused on the design and implementation of the core engine loop and the deterministic turn scheduler. He implemented the collision, win, and lose rules, including stochastic deterministic logic using a seeded random number generator, as well as a replay system for debugging deterministic behaviour. It defined clear conditions for game outcomes, such as player–enemy collisions and level completion when the player reaches an exit. A deterministic conflict resolution mechanism was implemented for cases where multiple actors target the same grid tile in a single turn. Oliver also implemented a grid-based A\* pathfinding algorithm that allows enemies to plan shortest paths around obstacles, using injected passability policies and a Manhattan-distance heuristic. The implementation enforces fixed neighbour ordering and stable priority-queue tie-breakers to maintain determinism.
 
-Additional contributions include support for movement constraints involving doors, keys, traps, and walls via a pluggable policy interface, as well as the creation of golden replay tests (same RNG seed and input sequence ⇒ identical end states) to validate end-to-end determinism of the turn pipeline.
+Additional contributions include support for movement constraints involving doors, keys, traps, and walls via a pluggable policy interface, as well as the creation of golden replay tests (using the same RNG seed and input sequence leads identical end states) to validate the end-to-end determinism of the turn pipeline.
 
 **Bart** focused on the data and presentation layer that connects the engine’s core logic with what players see and interact with on screen. He designed the primary game entities using small, reusable ECS components and implemented grid utilities to map between logical grid coordinates and world-space positions. These utilities support occupancy tracking and spatial queries such as neighbour lookup and reachability, enabling consistent rendering and gameplay alignment. Bart implemented a flexible level-loading system that reads level definitions from JSON files, validates their structure, and spawns the corresponding game entities. He also handled player input mapping, translating configurable keyboard inputs into deterministic movement intents compatible with the engine’s turn-based pipeline.
 
@@ -500,6 +501,7 @@ On the presentation side, Bart set up the 2D rendering layer, including grid-ali
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline, we reduced the difficulty of debugging gameplay behaviour. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
+
 
 
 
