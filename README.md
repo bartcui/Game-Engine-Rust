@@ -9,14 +9,20 @@ Yijun Chen, 1003045518, liloliver.chen@mail.utoronto.ca
 Bart Cui, 1011827908, bart.cui@mail.utoronto.ca
 
 ---
+### ** Links**
+
+- **Presentation Video**: [presentation.mov](presentation/video-slide%20presentation.mov)
+- **Video Demo**: [demo vid](https://www.youtube.com/watch?v=l4mN8oeTKqM)
+
+---
 
 ## **1. Motivation**
 
-Our motivation for picking this project comes from both personal interest and curiosity about how modern game engines are built. We heard that more gaming companies are starting to adapt existing large-scale game engines such as Unity and Unreal. These engines are powerful, but also very complex with hidden tools and APIs. Building even a small engine of our own gives us the chance to gain a deeper understanding of how engines operate and how these core components such as scene management, ECS design, and real-time rendering cooperate with each other.
+Our motivation for picking this project comes from both personal interest and curiosity about how modern game engines are built. We heard that more gaming companies are starting to adapt existing large-scale game engines such as Unity and Unreal. These engines are powerful, but also very complex with hidden tools and APIs. Building even a small engine of our own gives us the chance to gain a deeper understanding of how engines operate and how these core components such as scene management, ECS design, and real-time rendering cooperate.
 
 Also, since Rust’s emphasis is on memory safety and concurrency without a garbage collector makes it particularly appealing for systems-level development. Having used C++ in past projects, we’re hoping to explore how Rust’s ownership model can improve both developer productivity and runtime safety in a game engine context. Given the scope of a course project, we plan to focus on implementing a minimal prototype featuring a basic rendering pipeline, level loading, and a simplified ECS framework.
 
-Based on our research on game engine design and Bevy, we found that Bevy is good at real-time, parallel systems but is not directly aimed at turn-based, grid-based games. In such games, reproducibility is crucial and identical input sequences should always lead to the same outcomes. Bevy does not guarantee this behaviour by default. To address this, we will try to implement a custom turn scheduler that ensures consistent and reproducible state transitions. Although the new Bevy 0.17 recently introduced initial tilemap rendering support, it still lacks native grid utilities such as coordinate-to-world mapping, occupancy management, and pathfinding. That is why we try to build the engine to fill this space by adding a grid-aware foundation and reusable utilities designed for the needs of turn-based puzzle design, and hopefully can represent a small but meaningful contribution to the Rust game development ecosystem.
+Based on our research on game engine design and Bevy, we found that Bevy is good at real-time, parallel systems but is not directly aimed at turn-based, grid-based games. In such games, reproducibility is crucial and identical input sequences should always lead to the same outcomes. Bevy does not guarantee this behaviour by default. To address this, we will try to implement a custom turn scheduler that ensures consistent and reproducible state transitions. Although the new Bevy 0.17 recently introduced initial tilemap rendering support, it still lacks native grid utilities such as coordinate-to-world mapping, occupancy management, and pathfinding. That is why we try to build the engine to fill this space by adding a grid-aware foundation and reusable utilities designed for the needs of turn-based puzzle design, and hopefully, can represent a small but meaningful contribution to the Rust game development ecosystem.
 
 ---
 
@@ -24,7 +30,7 @@ Based on our research on game engine design and Bevy, we found that Bevy is good
 
 The objective of this project is to design and implement a compact 2D game engine in Rust, built on top of Bevy for turn-based and grid-based puzzle games. The engine should use Bevy’s ECS architecture, scheduling system and plugin model. It aims to provide a data-driven structure where levels can be authored in external JSON files, loaded at runtime, and played through a consistent turn cycle using Bevy’s ECS and scheduling system.
 
-The system is designed to support core gameplay mechanics commonly found in grid-based puzzle and chase games, including player actions, simple AI behavior, collision handling, traps, doors, and goal detection. All interactions operate on a tile-based grid with explicit occupancy tracking and grid-to-world coordinate mapping, ensuring predictable spatial reasoning and reproducible outcomes. To support a complete gameplay loop, the engine includes scene management for transitioning between the main menu, active gameplay, pause overlay, level completion screen, and final game-over state. A turn counter HUD, pause menu, and level progression system allow players to progress through multiple stages in sequence.
+The system is designed to support core gameplay mechanics commonly found in grid-based puzzle and chase games, including player actions, simple AI behaviour, collision handling, traps, doors, and goal detection. All interactions operate on a tile-based grid with explicit occupancy tracking and grid-to-world coordinate mapping, ensuring predictable spatial reasoning and reproducible outcomes. To support a complete gameplay loop, the engine includes scene management for transitioning between the main menu, active gameplay, pause overlay, level completion screen, and final game-over state. A turn counter HUD, pause menu, and level progression system allow players to progress through multiple stages in sequence.
 
 ### Gap in the Rust Game Development Ecosystem
 
@@ -37,9 +43,9 @@ This project aims to fill a gap between these extremes by providing a focused, m
 
 ### Educational Value for Rust Learners
 
-If released as open source, this project provides strong educational value for those interested in systems programming, ECS-based design, and deterministic simulation. The engine serves as an detailed example of:
+If released as open source, this project provides strong educational value for those interested in systems programming, ECS-based design, and deterministic simulation. The engine serves as a detailed example of:
 
-- Rust patterns for large projects such ownership, borrowing, resource management.
+- Rust patterns for large projects such as ownership, borrowing, and resource management.
 - Use of Bevy’s ECS and scheduling model in a controlled context.
 - Designing deterministic systems by enforcing explicit execution order and avoiding hidden side effects
 - Building extensible systems using traits, plugins, and modular components
@@ -48,7 +54,7 @@ Because the engine is intentionally small and domain-specific, learners can unde
 
 ## **3. Features**
 
-Here is a list of features form our game engine which we will be discussed in details:
+Here is a list of features from our game engine which we will discuss in detail:
 
 - [Grid System and Coordinate Mapping](#31-grid-system-and-coordinate-mapping)
 - [Level Loading and Validation](#32-level-loading-and-validation)
@@ -90,7 +96,7 @@ States we implemented:
 
 - Menu: Main menu UI, start/load game buttons
 - InGame: Active gameplay state
-- GameOver: Win screen after all levels completed
+- GameOver: Win screen after all levels are completed
 - Pause Overlay: A UI overlay within InGame
 
 Features:
@@ -127,15 +133,15 @@ A fully deterministic turn scheduler was implemented to guarantee reproducible g
 - Commit: State mutations are applied in a single-threaded, strictly ordered step to ensure determinism.
 - Cleanup: Temporary intent data and per-turn caches are cleared, preparing the world for the next turn.
 
-To eliminate non-deterministic behavior:
+To eliminate non-deterministic behaviour:
 
 - All gameplay-affecting systems run in a fixed order.
-- A seeded random number generator is used for any stochastic behavior.
+- A seeded random number generator is used for any stochastic behaviour.
 - Parallel execution is avoided during the commit phase.
 
 ### 3.7 ECS for Game Objects
 
-All game entities are modeled using Bevy’s Entity-Component-System (ECS) architecture, which provides clear separation between data and behavior and enables flexible composition of gameplay objects.
+All game entities are modelled using Bevy’s Entity-Component-System (ECS) architecture, which provides clear separation between data and behavior and enables flexible composition of gameplay objects.
 
 Each object is defined as a combination of small, reusable components, such as:
 
@@ -165,7 +171,7 @@ Key characteristics of the implementation:
 - Uses Manhattan distance (|dx| + |dy|) as the heuristic, which is admissible and consistent for grid-based movement.
 - Fully deterministic: identical inputs always produce identical paths.
 
-Passability rules and movement costs are defined through a pluggable policy interface (implemented as a Rust trait). This allows different behaviors without modifying the core solver, such as:
+Passability rules and movement costs are defined through a pluggable policy interface (implemented as a Rust trait). This allows different behaviours without modifying the core solver, such as:
 
 - Player vs. enemy movement rules
 - Doors, keys, or locked tiles
@@ -188,7 +194,7 @@ This system enables:
 - Verification of bug fixes by comparing before/after replays
 - “Golden tests” that assert identical end states for known input sequences
 
-The replay mechanism proved especially valuable for diagnosing subtle ordering bugs and validating that refactors did not introduce non-deterministic behavior.
+The replay mechanism proved especially valuable for diagnosing subtle ordering bugs and validating that refactors did not introduce non-deterministic behaviour.
 
 ---
 
@@ -212,7 +218,7 @@ For menu-style UI (Main Menu, Pause Menu, and level completion pop-up windows), 
 - **↑ / ↓**: Move selection up or down
 - **Enter**: Confirm the highlighted option
 
-Player input is captured each turn and translated into intent components rather than directly mutating game state. This keeps input handling deterministic and makes replay/ghost runs straightforward, since the game can re-simulate from logged intents rather than relying on real-time input timing.
+Player input is captured each turn and translated into intent components rather than directly mutating the game state. This keeps input handling deterministic and makes replay/ghost runs straightforward, since the game can re-simulate from logged intents rather than relying on real-time input timing.
 
 Developers can remap keys or add new actions by modifying the input systems for gameplay in **gather_player_input** function in **intents.rs** or UI navigation in **menu_input_system** function in **scenes/mod.rs**.
 
@@ -479,7 +485,7 @@ cargo test --test replay_golden -- --nocapture
 
 ## **6. Contributions**
 
-**Oliver** focused on the design and implementation of the core engine loop and the deterministic turn scheduler. He implemented the collision, win, and lose rules, including stochastic deterministic logic using a seeded random number generator, as well as a replay system for debugging deterministic behaviour. It defined clear conditions for game outcomes, such as player–enemy collisions and level completion when the player reaches an exit. A deterministic conflict resolution mechanism was implemented for cases where multiple actors target the same grid tile in a single turn. Oliver also implemented a grid-based A\* pathfinding algorithm that allows enemies to plan shortest paths around obstacles, using injected passability policies and a Manhattan-distance heuristic. The implementation enforces fixed neighbor ordering and stable priority-queue tie-breakers to maintain determinism.
+**Oliver** focused on the design and implementation of the core engine loop and the deterministic turn scheduler. He implemented the collision, win, and lose rules, including stochastic deterministic logic using a seeded random number generator, as well as a replay system for debugging deterministic behaviour. It defined clear conditions for game outcomes, such as player–enemy collisions and level completion when the player reaches an exit. A deterministic conflict resolution mechanism was implemented for cases where multiple actors target the same grid tile in a single turn. Oliver also implemented a grid-based A\* pathfinding algorithm that allows enemies to plan shortest paths around obstacles, using injected passability policies and a Manhattan-distance heuristic. The implementation enforces fixed neighbour ordering and stable priority-queue tie-breakers to maintain determinism.
 
 Additional contributions include support for movement constraints involving doors, keys, traps, and walls via a pluggable policy interface, as well as the creation of golden replay tests (same RNG seed and input sequence ⇒ identical end states) to validate end-to-end determinism of the turn pipeline.
 
@@ -489,14 +495,11 @@ On the presentation side, Bart set up the 2D rendering layer, including grid-ali
 
 ---
 
-## **Lessons learned and concluding remarks**
+## **7. Lessons learned and concluding remarks**
 
 One of the most important lessons from this project was the value of a deterministic turn scheduler in managing complex game logic. By enforcing a fixed, explicitly ordered turn pipeline, we reduced the difficulty of debugging gameplay behaviour. Determinism made it possible to reason about the system one turn at a time, ensured that identical inputs always produced identical outcomes, and enabled powerful tooling such as replay-based debugging and golden tests. This approach highlighted how careful system ordering and clear phase boundaries can transform an otherwise fragile, state-heavy game loop into a predictable and testable state machine.
 
 Another key takeaway was how Rust’s ownership and borrowing model helped prevent entire classes of runtime errors before the program ever ran. Constraints enforced by the compiler—such as exclusive mutable access, explicit lifetimes, and clear data ownership—initially slowed development but ultimately led to safer and more maintainable code. Many potential bugs common in game engines, including accidental shared mutation, use-after-free errors, and hidden data races, were caught at compile time. Combined with ECS patterns, Rust’s type system encouraged designing systems with explicit data dependencies, which aligned naturally with the deterministic turn scheduler and reduced runtime failures.
 
-## **7. Video Slide Presentation**
 
-A recorded walkthrough of the project presentation is available here:
 
-- **Presentation Video**: [presentation.mov](presentation/video-slide%20presentation.mov)
